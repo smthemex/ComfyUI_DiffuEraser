@@ -5,4 +5,4 @@ DiffuEraser is  a diffusion model for video Inpainting, you can use it in ComfyU
 * 春节过后再更新了 Updated after the Lunar New Year
   
 # Example
-![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example.png)
+![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example1.png)
