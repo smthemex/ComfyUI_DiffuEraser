@@ -61,7 +61,7 @@ Or
 * Use RMBG or BiRefNet make video2mask 使用RMBG or BiRefNet将 输入视频转为mask,注意RMBG不能商用.
 ![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example.png)
 * Use Mask video 使用遮罩视频,可以用其他方法,如sam2一类转化: 
-![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example1.png)
+![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example2.png)
 
 
 # 6.Citation
