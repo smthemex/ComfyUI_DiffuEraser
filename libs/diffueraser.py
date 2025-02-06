@@ -273,7 +273,11 @@ class DiffuEraser:
         #             timestep_spacing="trailing",
         #         )
         # self.num_inference_steps = checkpoints[ckpt][1]
-        self.pipeline.load_lora_weights(self.ckpt)
+        try:
+            self.pipeline.load_lora_weights(self.ckpt)
+        except:
+            print("diffusers 0.32 got error,so infer in no lora weights mode,if got bad result,please use high cfg")
+            pass
         
         if "lcmlike_lora" in self.ckpt:
             self.pipeline.scheduler = LCMScheduler()
