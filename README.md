@@ -1,6 +1,13 @@
 # ComfyUI_DiffuEraser
 [DiffuEraser](https://github.com/lixiaowen-xw/DiffuEraser) is  a diffusion model for video Inpainting, you can use it in ComfyUI
 
+# Update
+* 方法前置处理的视频反而更好，可能是代码的问题，所以增加输出前置视频
+* vae不是必须的 
+* The video pre processed by the method is actually better, which may be a problem with the code, so adding output pre processed video is necessary
+* Vae is not necessary
+
+
 # 1. Installation
 
 In the ./ComfyUI /custom_node directory, run the following:   
@@ -17,15 +24,12 @@ pip install -r requirements.txt
 # 3. Models
 * sd1.5 [address](https://modelscope.cn/models/AI-ModelScope/stable-diffusion-v1-5/files) v1-5-pruned-emaonly.safetensors #example
 * pcm 1.5 lora [address](https://huggingface.co/wangfuyun/PCM_Weights/tree/main/sd15)   pcm_sd15_smallcfg_2step_converted.safetensors  #example
-* vae  [address](https://huggingface.co/stabilityai/sd-vae-ft-mse/tree/main)    sd-vae-ft-mse.safetensors #example,rename it
 * ProPainter [address](https://github.com/sczhou/ProPainter/releases/tag/v0.1.0) # below example
 * unet and brushnet [address](https://huggingface.co/lixiaowen/diffuEraser/tree/main)  # below example
 
 ```
 --  ComfyUI/models/checkpoints
     |-- any sd1.5 safetensors #任意sd1.5模型
---  ComfyUI/models/vae
-    |-- sd-vae-ft-mse.safetensors  # rename from diffusion_pytorch_model.safetensors or not 是否重命名随你
 --  ComfyUI/models/DiffuEraser
      |--brushnet
         |-- config.json
@@ -61,7 +65,7 @@ Or
 * Use RMBG or BiRefNet make video2mask 使用RMBG or BiRefNet将 输入视频转为mask,注意RMBG不能商用.
 ![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example.png)
 * Use Mask video 使用遮罩视频,可以用其他方法,如sam2一类转化: 
-![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example2.png)
+![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/exampleb.png)
 
 
 # 6.Citation
