@@ -135,7 +135,8 @@ def read_priori(priori, fps, n_total_frames, img_size):
         exit()
     priori_fps = cap.get(cv2.CAP_PROP_FPS)
    
-    if priori_fps != fps:
+    if (priori_fps - fps) > 1e-8:
+        print(f"priori fps: {priori_fps}, fps: {fps}")
         cap.release()
         raise ValueError("The frame rate of all input videos needs to be consistent.")
 
