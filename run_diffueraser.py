@@ -8,7 +8,7 @@ import folder_paths
 import gc
 
 
-def load_diffueraser(pre_model_path, pcm_lora_path,vae_path,sd_repo,ckpt_path,original_config_file,device):
+def load_diffueraser(pre_model_path, pcm_lora_path,sd_repo,ckpt_path,original_config_file,device):
 
     start_time = time.time()
     device = get_device()
@@ -16,7 +16,7 @@ def load_diffueraser(pre_model_path, pcm_lora_path,vae_path,sd_repo,ckpt_path,or
     propainter_model_dir=os.path.join(pre_model_path, "propainter")
     if not os.path.exists(propainter_model_dir):
         os.makedirs(propainter_model_dir)
-    video_inpainting_sd = DiffuEraser(device, sd_repo, vae_path, pre_model_path,ckpt_path,original_config_file, ckpt=pcm_lora_path)
+    video_inpainting_sd = DiffuEraser(device, sd_repo, pre_model_path,ckpt_path,original_config_file, ckpt=pcm_lora_path)
     propainter = Propainter(propainter_model_dir, device=device)
 
     end_time = time.time()  
@@ -48,7 +48,7 @@ def diffueraser_inference(video_inpainting_sd,propainter,input_video,input_mask,
     torch.cuda.empty_cache()
     ## diffueraser
     # The default value is 0.  
-    video_path,image_list=video_inpainting_sd.forward(input_video, input_mask, priori_path,output_path,load_videobypath=load_videobypath,
+    video_path,image_list,Propainter_img=video_inpainting_sd.forward(input_video, input_mask, priori_path,output_path,load_videobypath=load_videobypath,
                                 max_img_size = max_img_size, video_length=video_length, mask_dilation_iter=mask_dilation_iter,seed=seed,
                                 guidance_scale=guidance_scale,num_inference_steps=num_inference_steps,fps=fps,img_size=(width,height),if_save_video=save_result_video)
     
@@ -57,5 +57,5 @@ def diffueraser_inference(video_inpainting_sd,propainter,input_video,input_mask,
     print(f"DiffuEraser inference time: {inference_time:.4f} s")
 
     torch.cuda.empty_cache()
-    return video_path,image_list
+    return video_path,image_list,Propainter_img
 
