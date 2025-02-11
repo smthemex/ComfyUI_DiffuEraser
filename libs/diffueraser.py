@@ -192,13 +192,13 @@ def read_video(validation_image, video_length, nframes, max_img_size):
 
 class DiffuEraser:
     def __init__(
-            self, device, base_model_path, vae_path, diffueraser_path, ckpt_path,original_config_file,revision=None,
+            self, device, base_model_path, diffueraser_path, ckpt_path,original_config_file,revision=None,
             ckpt="Normal CFG 4-Step", mode="sd15", loaded=None):
         self.device = device
 
         ## load model
         #self.vae = AutoencoderKL.from_pretrained(vae_path)
-        vae_config = os.path.join(base_model_path, "vae")
+        #vae_config = os.path.join(base_model_path, "vae")
         #self.vae=AutoencoderKL.from_single_file(vae_path, config=vae_config,torch_dtype=torch.float16)
         self.noise_scheduler = DDPMScheduler.from_pretrained(base_model_path, 
                 subfolder="scheduler",
@@ -518,7 +518,7 @@ class DiffuEraser:
             writer.release()
         ################################
 
-        return output_path,comp_frames
+        return output_path,comp_frames,prioris
             
 
 
