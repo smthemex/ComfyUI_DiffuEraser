@@ -32,7 +32,6 @@ class DiffuEraserLoader:
         return {
             "required": {
                 "checkpoint": (["none"] + folder_paths.get_filename_list("checkpoints"),),
-                "vae":  (["none"] + folder_paths.get_filename_list("vae"),),
                 "lora": (["none"] + folder_paths.get_filename_list("loras"),),
             },
         }
@@ -42,7 +41,7 @@ class DiffuEraserLoader:
     FUNCTION = "loader_main"
     CATEGORY = "DiffuEraser"
 
-    def loader_main(self,checkpoint,vae,lora):
+    def loader_main(self,checkpoint,lora):
 
         # check model is exits or not,if not auto downlaod
 
@@ -77,13 +76,13 @@ class DiffuEraserLoader:
             pcm_lora_path=folder_paths.get_full_path("loras",lora)
         else:
             raise "no pcm lora checkpoint"
-        if vae!="none" :    
-            vae_path=folder_paths.get_full_path("vae",vae)
-        else:
-            raise "no sd1.5 vae"
+        # if vae!="none" :    
+        #     vae_path=folder_paths.get_full_path("vae",vae)
+        # else:
+        #     raise "no sd1.5 vae"
 
 
-        model=load_diffueraser(DiffuEraser_weigths_path, pcm_lora_path,vae_path,sd_repo,ckpt_path,original_config_file,device)
+        model=load_diffueraser(DiffuEraser_weigths_path, pcm_lora_path,sd_repo,ckpt_path,original_config_file,device)
 
         gc.collect()
         torch.cuda.empty_cache()
@@ -154,8 +153,8 @@ class DiffuEraserSampler:
                          
         }
     
-    RETURN_TYPES = ("IMAGE","STRING", )
-    RETURN_NAMES = ("images","output_path", )
+    RETURN_TYPES = ("IMAGE","IMAGE","STRING", )
+    RETURN_NAMES = ("images","propainter_img","output_path", )
     FUNCTION = "sampler_main"
     CATEGORY = "DiffuEraser"
     
@@ -177,18 +176,23 @@ class DiffuEraserSampler:
                 raise "no video_mask,you can enable video2mask and fill a rmbg or BiRefNet repo to generate mask from video_image,or link video_mask from other node"
 
         seeds=None if seed==-1 else seed
+
+        print("frame_length:",len(video_image),"mask_length:",len(video_mask),"fps:",fps)
+        assert len(video_image) == len(video_mask), "Length of video_image and video_mask must be equal"
+        
         print("***********Start DiffuEraser Sampler**************")
         video_inpainting_sd.to(device)
         propainter.to(device)
-        output_path,image_list=diffueraser_inference(video_inpainting_sd,propainter,video_image,video_mask,video_length,width,height,
+        output_path,image_list,Propainter_list=diffueraser_inference(video_inpainting_sd,propainter,video_image,video_mask,video_length,width,height,
                                           mask_dilation_iter,max_img_size,ref_stride,neighbor_length,subvideo_length,guidance_scale,num_inference_steps,seeds,fps,save_result_video)
         video_inpainting_sd.to("cpu")
         #propainter.to("cpu")
 
         images=load_images(image_list)
+        Propainter_img=load_images(Propainter_list)
         gc.collect()
         torch.cuda.empty_cache()
-        return (images,output_path,)
+        return (images,Propainter_img,output_path,)
 
 
 
