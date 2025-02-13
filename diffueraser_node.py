@@ -4,7 +4,6 @@ import os
 import torch
 import gc
 import numpy as np
-from PIL import Image
 from .node_utils import  load_images,tensor2pil_list,file_exists,download_weights,image2masks
 import folder_paths
 from .run_diffueraser import load_diffueraser,diffueraser_inference
@@ -178,6 +177,8 @@ class DiffuEraserSampler:
         seeds=None if seed==-1 else seed
 
         print("frame_length:",len(video_image),"mask_length:",len(video_mask),"fps:",fps)
+        if len(video_mask)!=len(video_image) and len(video_mask)==1:
+            video_mask=video_mask*len(video_image) # if use one mask to inpaint all frames
         assert len(video_image) == len(video_mask), "Length of video_image and video_mask must be equal"
         
         print("***********Start DiffuEraser Sampler**************")
