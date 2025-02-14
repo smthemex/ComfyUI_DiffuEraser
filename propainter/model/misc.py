@@ -7,6 +7,7 @@ import torch.nn as nn
 import logging
 import numpy as np
 from os import path as osp
+from packaging import version
 
 def constant_init(module, val, bias=0):
     if hasattr(module, 'weight') and module.weight is not None:
@@ -52,9 +53,10 @@ def get_root_logger(logger_name='basicsr', log_level=logging.INFO, log_file=None
     initialized_logger[logger_name] = True
     return logger
 
+required_version = version.parse("1.12.0")
+current_version = version.parse(torch.__version__)
 
-IS_HIGH_VERSION = [int(m) for m in list(re.findall(r"^([0-9]+)\.([0-9]+)\.([0-9]+)([^0-9][a-zA-Z0-9]*)?(\+git.*)?$",\
-    torch.__version__)[0][:3])] >= [1, 12, 0]
+IS_HIGH_VERSION = current_version >= required_version
 
 def gpu_is_available():
     if IS_HIGH_VERSION:
