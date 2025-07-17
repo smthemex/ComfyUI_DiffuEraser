@@ -177,9 +177,18 @@ class DiffuEraserSampler:
         seeds=None if seed==-1 else seed
 
         print("frame_length:",len(video_image),"mask_length:",len(video_mask),"fps:",fps)
-        if len(video_mask)!=len(video_image) and len(video_mask)==1:
-            video_mask=video_mask*len(video_image) # if use one mask to inpaint all frames
-        assert len(video_image) == len(video_mask), "Length of video_image and video_mask must be equal"
+        if len(video_mask)!=len(video_image) :
+            if  len(video_mask)==1:
+                video_mask=video_mask*len(video_image) # if use one mask to inpaint all frames
+            else:
+                if len(video_mask)>len(video_image):  
+                    video_mask=video_mask[:len(video_image)]
+                    print("video_mask length:",len(video_mask),"video_image length:",len(video_image))
+                else:
+                    video_mask=video_mask+video_mask[:len(video_image)-len(video_mask)]
+                    print("video_mask length:",len(video_mask),"video_image length:",len(video_image))
+                
+      
         
         print("***********Start DiffuEraser Sampler**************")
         video_inpainting_sd.to(device)
