@@ -11,8 +11,7 @@ from .run_diffueraser import load_diffueraser,diffueraser_inference
 
 MAX_SEED = np.iinfo(np.int32).max
 current_node_path = os.path.dirname(os.path.abspath(__file__))
-device = torch.device(
-        "cuda") if torch.cuda.is_available() else torch.device("cpu")
+device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 # add checkpoints dir
 DiffuEraser_weigths_path = os.path.join(folder_paths.models_dir, "DiffuEraser")
@@ -215,4 +214,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DiffuEraserLoader":"DiffuEraserLoader",
     "DiffuEraserSampler":"DiffuEraserSampler",
 }
+
 
