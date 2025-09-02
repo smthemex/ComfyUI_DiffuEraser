@@ -64,7 +64,7 @@ class DiffuEraserLoader:
             download_weights(DiffuEraser_weigths_path,"lixiaowen/diffuEraser",subfolder="unet_main",pt_name="config.json")
 
         # load model
-        original_config_file=os.path.join(folder_paths.models_dir,"configs","v1-inference.yaml")
+        original_config_file=os.path.join(current_node_path,"libs/v1-inference.yaml")
         sd_repo=os.path.join(current_node_path,"sd15_repo")
         if checkpoint!="none":
             ckpt_path=folder_paths.get_full_path("checkpoints",checkpoint)
@@ -215,3 +215,4 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DiffuEraserLoader":"DiffuEraserLoader",
     "DiffuEraserSampler":"DiffuEraserSampler",
 }
+
