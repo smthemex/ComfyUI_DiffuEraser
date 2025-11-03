@@ -21,7 +21,7 @@ def image2masks(repo,video_image):
     start_time = time.time()
     model = AutoModelForImageSegmentation.from_pretrained(repo, trust_remote_code=True)
     torch.set_float32_matmul_precision(['high', 'highest'][0])
-    model.to('cuda')
+    model.to(device)
     model.eval()
     # Data settings
     image_size = (1024, 1024)
@@ -288,4 +288,5 @@ def download_weights(file_dir,repo_id,subfolder="",pt_name=""):
                 filename=pt_name,
                 local_dir=file_dir,
             )
+
         return file_path
