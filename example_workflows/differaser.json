@@ -1,0 +1,769 @@
+{
+  "id": "3da45669-6ef0-4ec2-a292-abe74e953ca2",
+  "revision": 0,
+  "last_node_id": 21,
+  "last_link_id": 26,
+  "nodes": [
+    {
+      "id": 7,
+      "type": "Propainter_Loader",
+      "pos": [
+        3545.684605688686,
+        944.4438779502053
+      ],
+      "size": [
+        353.1111633300784,
+        130
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "Propainter_Loader",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Propainter_Loader"
+      },
+      "widgets_values": [
+        "propainter\\ProPainter.pth",
+        "propainter\\recurrent_flow_completion.pth",
+        "propainter\\raft-things.pth",
+        "cpu"
+      ]
+    },
+    {
+      "id": 17,
+      "type": "SaveVideo",
+      "pos": [
+        4039.588713354701,
+        1439.7671022987934
+      ],
+      "size": [
+        478,
+        420.6194116210936
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 14
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "video/ComfyUI",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "DiffuEraser_PreData",
+      "pos": [
+        3639.4483963547445,
+        1166.3094503184818
+      ],
+      "size": [
+        272.4375,
+        98
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 18
+        },
+        {
+          "name": "video_mask_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 19
+        },
+        {
+          "name": "video_mask",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DiffuEraser_PreData"
+      },
+      "widgets_values": [
+        "briaai/RMBG-2.0"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "CreateVideo",
+      "pos": [
+        4707.826211690106,
+        1050.8378342212904
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 26
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": 23
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        30
+      ]
+    },
+    {
+      "id": 19,
+      "type": "VHS_LoadVideo",
+      "pos": [
+        3372.3171964640787,
+        1474.4346575533937
+      ],
+      "size": [
+        253.279296875,
+        310
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            19
+          ]
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "mask.mp4",
+        "force_rate": 0,
+        "custom_width": 0,
+        "custom_height": 0,
+        "frame_load_cap": 44,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "format": "AnimateDiff",
+        "choose video to upload": "image",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "mask.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_rate": 0,
+            "custom_width": 0,
+            "custom_height": 0,
+            "frame_load_cap": 44,
+            "skip_first_frames": 0,
+            "select_every_nth": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "CreateVideo",
+      "pos": [
+        3696.5705671588557,
+        1413.9490189136725
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 15
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            14
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        1
+      ]
+    },
+    {
+      "id": 20,
+      "type": "VHS_VideoInfo",
+      "pos": [
+        3361.206167411345,
+        1183.434691122729
+      ],
+      "size": [
+        225.59765625,
+        206
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source_fps🟨",
+          "type": "FLOAT",
+          "links": [
+            21,
+            22,
+            23
+          ]
+        },
+        {
+          "name": "source_frame_count🟨",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "source_duration🟨",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "source_width🟨",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "source_height🟨",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "loaded_fps🟦",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "loaded_frame_count🟦",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "loaded_duration🟦",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "loaded_width🟦",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "loaded_height🟦",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoInfo"
+      },
+      "widgets_values": {}
+    },
+    {
+      "id": 9,
+      "type": "Propainter_Sampler",
+      "pos": [
+        3957.5029550761133,
+        1148.8883582913368
+      ],
+      "size": [
+        270,
+        194
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "Propainter_Loader",
+          "link": 2
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 1
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "links": [
+            24
+          ]
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            15
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Propainter_Sampler"
+      },
+      "widgets_values": [
+        10,
+        8,
+        10,
+        10,
+        50
+      ]
+    },
+    {
+      "id": 3,
+      "type": "DiffuEraser_Loader",
+      "pos": [
+        4219.867509963363,
+        945.7489541331784
+      ],
+      "size": [
+        395.03338256835923,
+        86.033327178955
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "DiffuEraser_Loader",
+          "links": [
+            25
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DiffuEraser_Loader"
+      },
+      "widgets_values": [
+        "v1-5-pruned-emaonly.safetensors",
+        "sd15\\pcm_sd15_smallcfg_2step_converted.safetensors"
+      ]
+    },
+    {
+      "id": 18,
+      "type": "VHS_LoadVideo",
+      "pos": [
+        3043.1471860575843,
+        1001.7635755450315
+      ],
+      "size": [
+        253.279296875,
+        455.11716920374704
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            18
+          ]
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": [
+            20
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "video.mp4",
+        "force_rate": 0,
+        "custom_width": 0,
+        "custom_height": 0,
+        "frame_load_cap": 44,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "format": "AnimateDiff",
+        "choose video to upload": "image",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "video.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_rate": 0,
+            "custom_width": 0,
+            "custom_height": 0,
+            "frame_load_cap": 44,
+            "skip_first_frames": 0,
+            "select_every_nth": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "SaveVideo",
+      "pos": [
+        4672.625436743371,
+        1369.3215236855117
+      ],
+      "size": [
+        474.35558837890585,
+        445.77460030033916
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "video/ComfyUI",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 21,
+      "type": "DiffuEraser_Sampler",
+      "pos": [
+        4315.541525719992,
+        1122.872132522008
+      ],
+      "size": [
+        270,
+        222
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "DiffuEraser_Loader",
+          "link": 25
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 24
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            26
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DiffuEraser_Sampler"
+      },
+      "widgets_values": [
+        2,
+        1767390980,
+        "randomize",
+        false,
+        5,
+        5,
+        false
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      6,
+      0,
+      9,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      2,
+      7,
+      0,
+      9,
+      0,
+      "Propainter_Loader"
+    ],
+    [
+      5,
+      10,
+      0,
+      11,
+      0,
+      "VIDEO"
+    ],
+    [
+      14,
+      16,
+      0,
+      17,
+      0,
+      "VIDEO"
+    ],
+    [
+      15,
+      9,
+      1,
+      16,
+      0,
+      "IMAGE"
+    ],
+    [
+      18,
+      18,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      19,
+      19,
+      0,
+      6,
+      1,
+      "IMAGE"
+    ],
+    [
+      20,
+      18,
+      3,
+      20,
+      0,
+      "VHS_VIDEOINFO"
+    ],
+    [
+      21,
+      20,
+      0,
+      9,
+      2,
+      "FLOAT"
+    ],
+    [
+      22,
+      20,
+      0,
+      16,
+      2,
+      "FLOAT"
+    ],
+    [
+      23,
+      20,
+      0,
+      10,
+      2,
+      "FLOAT"
+    ],
+    [
+      24,
+      9,
+      0,
+      21,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      25,
+      3,
+      0,
+      21,
+      0,
+      "DiffuEraser_Loader"
+    ],
+    [
+      26,
+      21,
+      0,
+      10,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8264462809917354,
+      "offset": [
+        -2889.713670688358,
+        -813.6589955991597
+      ]
+    },
+    "workflowRendererVersion": "LG",
+    "frontendVersion": "1.32.9",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

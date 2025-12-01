@@ -4,10 +4,14 @@ import os
 import torch
 import gc
 import numpy as np
-from .node_utils import  load_images,tensor2pil_list,file_exists,download_weights,image2masks
+from typing_extensions import override
+from comfy_api.latest import ComfyExtension, io
+import nodes
+import comfy.model_management as mm
+from .node_utils import  load_images,tensor2pil_list,image2masks,nomarl_upscale
 import folder_paths
-from .run_diffueraser import load_diffueraser,diffueraser_inference
-
+from .run_diffueraser import load_diffueraser,load_propainter
+from diffusers.hooks import apply_group_offloading
 
 MAX_SEED = np.iinfo(np.int32).max
 current_node_path = os.path.dirname(os.path.abspath(__file__))
@@ -21,198 +25,211 @@ folder_paths.add_model_folder_path("DiffuEraser", DiffuEraser_weigths_path)
 
 
 
-class DiffuEraserLoader:
-    def __init__(self):
-        pass
-
+class Propainter_Loader(io.ComfyNode):
     @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "checkpoint": (["none"] + folder_paths.get_filename_list("checkpoints"),),
-                "lora": (["none"] + folder_paths.get_filename_list("loras"),),
-            },
-        }
-
-    RETURN_TYPES = ("MODEL_DiffuEraser",)
-    RETURN_NAMES = ("model",)
-    FUNCTION = "loader_main"
-    CATEGORY = "DiffuEraser"
-
-    def loader_main(self,checkpoint,lora):
-
-        # check model is exits or not,if not auto downlaod
-
-        brushnet_weigths_path = os.path.join(DiffuEraser_weigths_path, "brushnet")
-        if not os.path.exists(brushnet_weigths_path):
-            os.makedirs(brushnet_weigths_path)
-
-        unet_weigths_path = os.path.join(DiffuEraser_weigths_path, "unet_main")    
-        if not os.path.exists(unet_weigths_path):
-            os.makedirs(unet_weigths_path)
-
-
-        if not file_exists(brushnet_weigths_path,"config.json") :
-            download_weights(DiffuEraser_weigths_path,"lixiaowen/diffuEraser",subfolder="brushnet",pt_name="config.json")
-        if not file_exists(brushnet_weigths_path,"diffusion_pytorch_model.safetensors"):
-            download_weights(DiffuEraser_weigths_path,"lixiaowen/diffuEraser",subfolder="brushnet",pt_name="diffusion_pytorch_model.safetensors")
-
-        if not file_exists(unet_weigths_path,"diffusion_pytorch_model.safetensors"):
-            download_weights(DiffuEraser_weigths_path,"lixiaowen/diffuEraser",subfolder="unet_main",pt_name="diffusion_pytorch_model.safetensors")
-        if not file_exists(unet_weigths_path,"config.json"):
-            download_weights(DiffuEraser_weigths_path,"lixiaowen/diffuEraser",subfolder="unet_main",pt_name="config.json")
-
-        # load model
-        original_config_file=os.path.join(current_node_path,"libs/v1-inference.yaml")
-        sd_repo=os.path.join(current_node_path,"sd15_repo")
-        if checkpoint!="none":
-            ckpt_path=folder_paths.get_full_path("checkpoints",checkpoint)
-        else:
-            raise "no sd1.5 checkpoint"
-        
-        if lora!="none":
-            pcm_lora_path=folder_paths.get_full_path("loras",lora)
-        else:
-            raise "no pcm lora checkpoint"
-        # if vae!="none" :    
-        #     vae_path=folder_paths.get_full_path("vae",vae)
-        # else:
-        #     raise "no sd1.5 vae"
+    def define_schema(cls):
+        return io.Schema(
+            node_id="Propainter_Loader",
+            display_name="Propainter_Loader",
+            category="DiffuEraser",
+            inputs=[
+                io.Combo.Input("propainter",options= ["none"] + folder_paths.get_filename_list("DiffuEraser") ),
+                io.Combo.Input("flow",options= ["none"] + folder_paths.get_filename_list("DiffuEraser") ),
+                io.Combo.Input("fix_raft",options= ["none"] + folder_paths.get_filename_list("DiffuEraser") ),
+                io.Combo.Input("device",options= ["cpu","cuda","mps"] ),
+            ],
+            outputs=[
+                io.Custom("Propainter_Loader").Output(display_name="model"),
+                ],
+            )
+    @classmethod
+    def execute(cls, propainter,flow,fix_raft,device) -> io.NodeOutput:
+        ProPainter_path=folder_paths.get_full_path("DiffuEraser",propainter) if propainter!="none" else None
+        flow_path=folder_paths.get_full_path("DiffuEraser",flow) if flow!="none" else None
+        fix_raft_path=folder_paths.get_full_path("DiffuEraser",fix_raft) if fix_raft!="none" else None
+        if fix_raft_path is  None or flow_path is  None or ProPainter_path is None:
+            raise "need load all models"
+        model=load_propainter(fix_raft_path,flow_path,ProPainter_path,device=device)
+        return io.NodeOutput(model)
 
 
-        model=load_diffueraser(DiffuEraser_weigths_path, pcm_lora_path,sd_repo,ckpt_path,original_config_file,device)
-
+class DiffuEraser_Loader(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="DiffuEraser_Loader",
+            display_name="DiffuEraser_Loader",
+            category="DiffuEraser",
+            inputs=[
+                io.Combo.Input("sd15",options= ["none"] + folder_paths.get_filename_list("checkpoints") ),
+                io.Combo.Input("lora",options= ["none"] + folder_paths.get_filename_list("loras") ),
+            ],
+            outputs=[
+                io.Custom("DiffuEraser_Loader").Output(display_name="model"),
+                ],
+            )
+    @classmethod
+    def execute(cls, sd15,lora) -> io.NodeOutput:
+        ckpt_path=folder_paths.get_full_path("checkpoints",sd15) if sd15!="none" else None
+        pcm_lora_path=folder_paths.get_full_path("loras",lora) if lora!="none" else None
+        #print("load lora model from:",pcm_lora_path)
+        model=load_diffueraser(os.path.join(current_node_path,"sd15_repo"),DiffuEraser_weigths_path, ckpt_path,os.path.join(current_node_path,"libs/v1-inference.yaml"),pcm_lora_path,device)
         gc.collect()
         torch.cuda.empty_cache()
-        return (model,)
-    
-class DiffuEraserSampler:
-    def __init__(self):
-        pass
-    
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "model": ("MODEL_DiffuEraser",),
-                "images": ("IMAGE",), #[b,h,w,c]
-                "fps": ("FLOAT", {"forceInput": True,}),
-                "seed": ("INT", {"default": -1, "min": -1, "max": MAX_SEED}),
-                "num_inference_steps": ("INT", {
-                    "default": 2,
-                    "min": 1,  # Minimum value
-                    "max": 120,  # Maximum value
-                    "step": 1,  # Slider's step
-                    "display": "number",  # Cosmetic only: display as "number" or "slider"
-                }),
-                "guidance_scale": ("FLOAT", {"default": 0, "min": 0, "max": 10., "step": -0.1, "display": "number"}),
-                "video_length": ("INT", {
-                    "default": 10,
-                    "min": 1,  # Minimum value
-                    "max": 1024,  # Maximum value
-                    "step": 1,  # Slider's step
-                    "display": "number",  # Cosmetic only: display as "number" or "slider"
-                }),
-                "mask_dilation_iter": ("INT", {
-                    "default": 8,
-                    "min": 1,  # Minimum value
-                    "max": 1024,  # Maximum value
-                    "step": 1,  # Slider's step
-                    "display": "number",  # Cosmetic only: display as "number" or "slider"
-                }),
-                "ref_stride": ("INT", {
-                    "default": 10,
-                    "min": 1,  # Minimum value
-                    "max": 1024,  # Maximum value
-                    "step": 1,  # Slider's step
-                    "display": "number",  # Cosmetic only: display as "number" or "slider"
-                }),
-                "neighbor_length": ("INT", {
-                    "default": 10,
-                    "min": 1,  # Minimum value
-                    "max": 1024,  # Maximum value
-                    "step": 1,  # Slider's step
-                    "display": "number",  # Cosmetic only: display as "number" or "slider"
-                }),
-                "subvideo_length": ("INT", {
-                    "default": 50,
-                    "min": 1,  # Minimum value
-                    "max": 1024,  # Maximum value
-                    "step": 1,  # Slider's step
-                    "display": "number",  # Cosmetic only: display as "number" or "slider"
-                }),
-                "video2mask":("BOOLEAN", {"default": False},),
-                "seg_repo": ("STRING", {"default": "briaai/RMBG-2.0"},),
-                "save_result_video":("BOOLEAN", {"default": False},),},
-                "optional": {
-                    "video_mask": ("IMAGE",),
-                  
-                }
-                         
-        }
-    
-    RETURN_TYPES = ("IMAGE","IMAGE","STRING", )
-    RETURN_NAMES = ("images","propainter_img","output_path", )
-    FUNCTION = "sampler_main"
-    CATEGORY = "DiffuEraser"
-    
-    def sampler_main(self, model,images,fps,seed,num_inference_steps,guidance_scale,video_length,mask_dilation_iter,ref_stride,neighbor_length,subvideo_length,video2mask,seg_repo,save_result_video,**kwargs):
-        
-        video_inpainting_sd=model.get("video_inpainting_sd")
-        propainter=model.get("propainter")
+        return io.NodeOutput(model)
 
-        max_img_size=1920
+
+class DiffuEraser_PreData(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="DiffuEraser_PreData",
+            display_name="DiffuEraser_PreData",
+            category="DiffuEraser",
+            inputs=[
+                io.Image.Input("images"),
+                io.String.Input("seg_repo",default="briaai/RMBG-2.0"),
+                io.Image.Input("video_mask_image",optional=True),
+                io.Image.Input("video_mask",optional=True),
+            ],
+            outputs=[
+                 io.Conditioning.Output(display_name="conditioning"),
+                ],
+            )
+    @classmethod
+    def execute(cls, images,seg_repo,video_mask_image=None,video_mask=None) -> io.NodeOutput:
         _,height,width,_  = images.size()
+        height,width=(height-height%8, width-width%8)
         video_image=tensor2pil_list(images,width,height)
-        if video2mask and seg_repo:   
-            print("***********Start video to masks infer **************")
-            video_mask=image2masks(seg_repo,video_image)# use rmbg or BiRefNet to make video to masks
-        else:
-            if isinstance(kwargs.get("video_mask"),torch.Tensor):
-                video_mask=tensor2pil_list(kwargs.get("video_mask"),width,height)
+       
+        if video_mask is None and video_mask_image is None and seg_repo:    # use rmbg or BiRefNet to make video to masks
+            print("*********** Use input video and repo to make masks **************")
+            init_mask=image2masks(seg_repo,video_image)
+        elif video_mask_image is not None:
+            if isinstance(video_mask_image,torch.Tensor) and len(video_mask_image)<4:
+                raise "video_mask_image is not a normal comfyUI image tensor, need a shape like  b,h,w,c"
             else:
-                raise "no video_mask,you can enable video2mask and fill a rmbg or BiRefNet repo to generate mask from video_image,or link video_mask from other node"
-
-        seeds=None if seed==-1 else seed
-
-        print("frame_length:",len(video_image),"mask_length:",len(video_mask),"fps:",fps)
-        if len(video_mask)!=len(video_image) :
-            if  len(video_mask)==1:
-                video_mask=video_mask*len(video_image) # if use one mask to inpaint all frames
-            else:
-                if len(video_mask)>len(video_image):  
-                    video_mask=video_mask[:len(video_image)]
-                    print("video_mask length:",len(video_mask),"video_image length:",len(video_image))
-                else:
-                    video_mask=video_mask+video_mask[:len(video_image)-len(video_mask)]
-                    print("video_mask length:",len(video_mask),"video_image length:",len(video_image))
+                init_mask=tensor2pil_list(video_mask_image,width,height)
                 
-      
+        elif video_mask is not None:
+            if isinstance(video_mask,torch.Tensor) and len(video_mask)>3:
+                raise "video_mask is not a normal comfyUI mask tensor, need a shape like  b,h,w"
+            init_mask=nomarl_upscale( video_mask.reshape((-1, 1, video_mask.shape[-2], video_mask.shape[-1])).movedim(1, -1).expand(-1, -1, -1, 3) ,width,height)
+        else:   
+            raise "no video_mask,you can enable video2mask and fill a rmbg or BiRefNet repo to generate mask from video_image,or link video_mask from other node"
         
-        print("***********Start DiffuEraser Sampler**************")
-        video_inpainting_sd.to(device)
-        propainter.to(device)
-        output_path,image_list,Propainter_list=diffueraser_inference(video_inpainting_sd,propainter,video_image,video_mask,video_length,width,height,
-                                          mask_dilation_iter,max_img_size,ref_stride,neighbor_length,subvideo_length,guidance_scale,num_inference_steps,seeds,fps,save_result_video)
-        video_inpainting_sd.to("cpu")
-        #propainter.to("cpu")
+        if len(init_mask)!=len(video_image) :
+            if  len(init_mask)==1:
+                init_mask=init_mask*len(video_image) # if use one mask to inpaint all frames
+            else:
+                if len(init_mask)>len(video_image):  
+                    init_mask=init_mask[:len(video_image)]
+                    print("init_mask length:",len(init_mask),"video_image length:",len(video_image))
+                else:
+                    init_mask=init_mask+init_mask[:len(video_image)-len(init_mask)]
+                    print("init_mask length:",len(init_mask),"video_image length:",len(video_image))
+        cond={"init_mask":init_mask,"video_image":video_image,"height":height,"width":width}
+        return io.NodeOutput(cond)
 
-        images=load_images(image_list)
-        Propainter_img=load_images(Propainter_list)
+
+class Propainter_Sampler(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="Propainter_Sampler",
+            display_name="Propainter_Sampler",
+            category="DiffuEraser",
+            inputs=[
+                io.Custom("Propainter_Loader").Input("model"),
+                io.Conditioning.Input("conditioning"),
+                io.Float.Input("fps", force_input=True),
+                io.Int.Input("video_length", default=10, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
+                io.Int.Input("mask_dilation_iter", default=8, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
+                io.Int.Input("ref_stride", default=10, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
+                io.Int.Input("neighbor_length", default=10, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
+                io.Int.Input("subvideo_length", default=50, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
+            ], 
+            outputs=[
+                io.Conditioning.Output(display_name="conditioning"),
+                io.Image.Output(display_name="images"),
+                ],
+            )
+    
+    @classmethod
+    def execute(cls, model,conditioning,fps,video_length,mask_dilation_iter,ref_stride,neighbor_length,subvideo_length) -> io.NodeOutput:
+        
+        model.to(device)
+        conditioning["fps"]=fps
+        conditioning["video_length"]=video_length
+        conditioning["mask_dilation_iter"]=mask_dilation_iter
+       
+        Propainter_img=model.forward(conditioning["video_image"], conditioning["init_mask"],load_videobypath=False,video_length=video_length, height= conditioning["height"],width=conditioning["width"],
+                        ref_stride=ref_stride, neighbor_length=neighbor_length, subvideo_length = subvideo_length,
+                        mask_dilation = mask_dilation_iter,save_fps=fps) 
+        conditioning["prioris"]=Propainter_img
+        model.to("cpu")
         gc.collect()
         torch.cuda.empty_cache()
-        return (images,Propainter_img,output_path,)
+        images=load_images(Propainter_img)
+        return io.NodeOutput(conditioning,images)
+
+class DiffuEraser_Sampler(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="DiffuEraser_Sampler",
+            display_name="DiffuEraser_Sampler",
+            category="DiffuEraser",
+            inputs=[
+                io.Custom("DiffuEraser_Loader").Input("model"),
+                io.Conditioning.Input("conditioning"),
+                io.Int.Input("steps", default=2, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
+                io.Int.Input("seed", default=0, min=0, max=MAX_SEED,display_mode=io.NumberDisplay.number),
+                io.Boolean.Input("save_result_video", default=False),
+                io.Int.Input("unet_group", default=5, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
+                io.Int.Input("brush_group", default=5, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
+                io.Boolean.Input("blended", default=False),
+            ], 
+            outputs=[
+                io.Image.Output(display_name="image"),
+               
+                ],
+             )
+    @classmethod
+    def execute(cls, model,conditioning,steps,seed,save_result_video,unet_group,brush_group,blended) -> io.NodeOutput:
+        max_img_size=1920
+        model.to(device) 
+        model.pipeline.enable_xformers_memory_efficient_attention()
+        apply_group_offloading(model.pipeline.unet, onload_device=torch.device("cuda"), offload_type="block_level", num_blocks_per_group=unet_group)
+        apply_group_offloading(model.pipeline.brushnet, onload_device=torch.device("cuda"), offload_type="block_level", num_blocks_per_group=brush_group)
+        image_list=model.forward(conditioning["video_image"], conditioning["init_mask"], conditioning["prioris"],folder_paths.get_output_directory(),load_videobypath=False,
+                                max_img_size = max_img_size, video_length=conditioning["video_length"], mask_dilation_iter=conditioning["mask_dilation_iter"],seed=seed,blended=blended,
+                               num_inference_steps=steps,fps=conditioning["fps"],img_size=(conditioning["width"],conditioning["height"]),if_save_video=save_result_video)
+        
+        #model.to("cpu")
+        gc.collect()
+        torch.cuda.empty_cache()
+        images=load_images(image_list)
+
+        return io.NodeOutput(images)
 
 
+from aiohttp import web
+from server import PromptServer
+@PromptServer.instance.routes.get("/DiffuEraser_SM_Extension")
+async def get_hello(request):
+    return web.json_response("DiffuEraser_SM_Extension")
 
-NODE_CLASS_MAPPINGS = {
-    "DiffuEraserLoader":DiffuEraserLoader,
-    "DiffuEraserSampler":DiffuEraserSampler,
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "DiffuEraserLoader":"DiffuEraserLoader",
-    "DiffuEraserSampler":"DiffuEraserSampler",
-}
-
+class DiffuEraser_SM_Extension(ComfyExtension):
+    @override
+    async def get_node_list(self) -> list[type[io.ComfyNode]]:
+        return [
+            Propainter_Loader,
+            DiffuEraser_Loader,
+            DiffuEraser_PreData,
+            Propainter_Sampler,
+            DiffuEraser_Sampler,
+        ]
+async def comfy_entrypoint() -> DiffuEraser_SM_Extension:  # ComfyUI calls this to load your extension and its nodes.
+    return DiffuEraser_SM_Extension()
 

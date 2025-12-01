@@ -192,38 +192,28 @@ def read_video(validation_image, video_length, nframes, max_img_size):
 
 
 class DiffuEraser:
-    def __init__(
-            self, device, base_model_path, diffueraser_path, ckpt_path,original_config_file,revision=None,
-            ckpt="Normal CFG 4-Step", mode="sd15", loaded=None):
+    def __init__(self, device, ):
         self.device = device
 
-        ## load model
-        #self.vae = AutoencoderKL.from_pretrained(vae_path)
-        #vae_config = os.path.join(base_model_path, "vae")
-        #self.vae=AutoencoderKL.from_single_file(vae_path, config=vae_config,torch_dtype=torch.float16)
-        self.noise_scheduler = DDPMScheduler.from_pretrained(base_model_path, 
+    def load_model(self,repo, diffueraser_path, ckpt_path,original_config_file,ckpt="Normal CFG 4-Step",):
+        self.noise_scheduler = DDPMScheduler.from_pretrained(repo, 
                 subfolder="scheduler",
                 prediction_type="v_prediction",
                 timestep_spacing="trailing",
                 rescale_betas_zero_snr=True
             )
         self.tokenizer = AutoTokenizer.from_pretrained(
-                    base_model_path,
+                    repo,
                     subfolder="tokenizer",
                     use_fast=False,
                 )
-        
-        try: #改成单体加载,虽然代码麻烦,但是方便
+        try: 
             pipe = StableDiffusionPipeline.from_single_file(
-            ckpt_path,config=base_model_path, original_config=original_config_file)
+            ckpt_path,config=repo, original_config=original_config_file)
         except:
             pipe = StableDiffusionPipeline.from_single_file(
-            ckpt_path, config=base_model_path,original_config_file=original_config_file)
+            ckpt_path, config=repo,original_config_file=original_config_file)
 
-        #text_encoder_cls = import_model_class_from_model_name_or_path(base_model_path,revision)
-        # self.text_encoder = text_encoder_cls.from_pretrained(
-        #         base_model_path, subfolder="text_encoder"
-        #     )
         self.text_encoder = pipe.text_encoder
         self.vae = pipe.vae
         del pipe 
@@ -234,10 +224,9 @@ class DiffuEraser:
         self.unet_main = UNetMotionModel.from_pretrained(
             diffueraser_path, subfolder="unet_main",
         )
-
         ## set pipeline
         self.pipeline = StableDiffusionDiffuEraserPipeline.from_pretrained(
-            base_model_path,
+            repo,
             vae=self.vae,
             text_encoder=self.text_encoder,
             tokenizer=self.tokenizer,
@@ -245,42 +234,23 @@ class DiffuEraser:
             brushnet=self.brushnet,
             safety_checker=None,#no need 
         ).to(self.device, torch.float16)
+        self.vae=None
+        self.text_encoder=None
         self.pipeline.scheduler = UniPCMultistepScheduler.from_config(self.pipeline.scheduler.config)
         self.pipeline.set_progress_bar_config(disable=True)
 
         self.noise_scheduler = UniPCMultistepScheduler.from_config(self.pipeline.scheduler.config)
-        self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)
+        self.vae_scale_factor = 2 ** (len(self.pipeline.vae.config.block_out_channels) - 1)
         self.image_processor = VaeImageProcessor(vae_scale_factor=self.vae_scale_factor, do_convert_rgb=True)
-
-        ## use PCM or LCM   
-        self.ckpt = ckpt
-        #self.guidance_scale=None
-        # PCM_ckpts = checkpoints[ckpt][0].format(mode)
-        # self.guidance_scale = checkpoints[ckpt][2]
-        # if loaded != (ckpt + mode):
-        #     self.pipeline.load_lora_weights(
-        #         "weights/PCM_Weights", weight_name=PCM_ckpts, subfolder=mode
-        #     )
-        #     loaded = ckpt + mode
-
-        #     if ckpt == "LCM-Like LoRA":
-        #         self.pipeline.scheduler = LCMScheduler()
-        #     else:
-        #         self.pipeline.scheduler = TCDScheduler(
-        #             num_train_timesteps=1000,
-        #             beta_start=0.00085,
-        #             beta_end=0.012,
-        #             beta_schedule="scaled_linear",
-        #             timestep_spacing="trailing",
-        #         )
-        # self.num_inference_steps = checkpoints[ckpt][1]
+        
         try:
-            self.pipeline.load_lora_weights(self.ckpt)
-        except:
-            print("diffusers 0.32 got error,so infer in no lora weights mode,if got bad result,please use high cfg")
+            self.pipeline.load_lora_weights(pretrained_model_name_or_path_or_dict=ckpt)
+            print("Loaded lora from", ckpt)
+        except Exception as e:
+            print(f"Failed to apply LoRA {str(e)}")
             pass
         
-        if "lcmlike_lora" in self.ckpt:
+        if "lcmlike" in ckpt.lower():
             self.pipeline.scheduler = LCMScheduler()
             self.num_inference_steps= 4
         else:
@@ -291,12 +261,12 @@ class DiffuEraser:
                     beta_schedule="scaled_linear",
                     timestep_spacing="trailing",
                 )
-            self.num_inference_steps=extract_step_number(self.ckpt)
+            self.num_inference_steps=extract_step_number(ckpt)
 
 
         #self.num_inference_steps = checkpoints[ckpt][1]
         
-        if "normal" in self.ckpt:
+        if "normal" in ckpt.lower():
             self.guidance_scale = 7.5
         else:
             self.guidance_scale = 0
@@ -304,9 +274,10 @@ class DiffuEraser:
 
 
     def to(self, device):
+        self.device=device
         self.pipeline.to(device)
 
-    def forward(self, validation_image, validation_mask, priori, output_path,load_videobypath=False,
+    def forward(self, validation_image, validation_mask, prioris, output_path,load_videobypath=False,
                 max_img_size = 1280, video_length=2, mask_dilation_iter=4,
                 nframes=22, seed=None, revision = None, guidance_scale=None, blended=True,num_inference_steps=None,fps=24,img_size=(512, 512),if_save_video=False):
         validation_prompt = ""  # 
@@ -350,11 +321,12 @@ class DiffuEraser:
                 masked_image = np.array(frames[idx])*(1-(np.array(mask)[:,:,np.newaxis].astype(np.float32)/255))
                 masked_image = Image.fromarray(masked_image.astype(np.uint8))
                 validation_images_input.append(masked_image)
-           
+       
         ################    read priori   ################  
        
-        prioris = read_priori(priori, fps, n_total_frames, img_size)
-       
+        #prioris = read_priori(priori, fps, n_total_frames, img_size)
+        if prioris[0].size != img_size:
+            prioris = [img.resize(img_size) for img in prioris]
         ## recheck
         n_total_frames = min(min(len(frames), len(validation_masks_input)), len(prioris))
         if(n_total_frames<22):
@@ -388,9 +360,8 @@ class DiffuEraser:
             tar_height//8,
             tar_width//8
         )
-        if self.text_encoder is not None:
-            prompt_embeds_dtype = self.text_encoder.dtype
-        elif self.unet_main is not None:
+
+        if self.unet_main is not None:
             prompt_embeds_dtype = self.unet_main.dtype
         else:
             prompt_embeds_dtype = torch.float16
@@ -410,9 +381,10 @@ class DiffuEraser:
             latents = []
             num=4
             for i in range(0, pixel_values.shape[0], num):
-                latents.append(self.vae.encode(pixel_values[i : i + num]).latent_dist.sample())
+                latents.append(self.pipeline.vae.encode(pixel_values[i : i + num]).latent_dist.sample())
             latents = torch.cat(latents, dim=0)
-        latents = latents * self.vae.config.scaling_factor #[(b f), c1, h, w], c1=4
+        latents = latents * self.pipeline.vae.config.scaling_factor #[(b f), c1, h, w], c1=4
+        self.pipeline.vae.to("cpu")
         torch.cuda.empty_cache()  
         timesteps = torch.tensor([0], device=self.device)
         timesteps = timesteps.long()
@@ -447,10 +419,10 @@ class DiffuEraser:
             torch.cuda.empty_cache()  
 
             def decode_latents(latents, weight_dtype):
-                latents = 1 / self.vae.config.scaling_factor * latents
+                latents = 1 / self.pipeline.vae.config.scaling_factor * latents
                 video = []
                 for t in range(latents.shape[0]):
-                    video.append(self.vae.decode(latents[t:t+1, ...].to(weight_dtype)).sample)
+                    video.append(self.pipeline.vae.decode(latents[t:t+1, ...].to(weight_dtype)).sample)
                 video = torch.concat(video, dim=0)
                 # we always cast to float32 as this does not cause significant overhead and is compatible with bfloat16
                 video = video.float()
@@ -498,20 +470,32 @@ class DiffuEraser:
         mask_blurreds = []
         if blended:
             # blur, you can adjust the parameters for better performance
+            first_mask_array = np.array(binary_masks[0])
+            mask_size = binary_masks[0].size  # (width, height)
+             # 使用遮罩信息计算自适应核大小
+            blur_kernel = get_practical_adaptive_kernel(mask_size, first_mask_array)
+            print(f"Using adaptive blur kernel: {blur_kernel} for mask size: {mask_size}")
             for i in range(len(binary_masks)):
-                mask_blurred = cv2.GaussianBlur(np.array(binary_masks[i]), (21, 21), 0)/255.
+                mask_blurred = cv2.GaussianBlur(np.array(binary_masks[i]), blur_kernel, 0)/255.
                 binary_mask = 1-(1-np.array(binary_masks[i])/255.) * (1-mask_blurred)
                 mask_blurreds.append(Image.fromarray((binary_mask*255).astype(np.uint8)))
             binary_masks = mask_blurreds
-        
-        comp_frames = []
-        for i in range(len(images)):
-            mask = np.expand_dims(np.array(binary_masks[i]),2).repeat(3, axis=2).astype(np.float32)/255.# 二极值遮罩转为灰度图
-            img = (np.array(images[i]).astype(np.uint8) * mask + np.array(resized_frames_ori[i]).astype(np.uint8) * (1 - mask)).astype(np.uint8) #(480, 848, 3) (480, 848, 3) (480, 848, 3)
-            comp_frames.append(Image.fromarray(img))
+
+            comp_frames = []
+            for i in range(len(images)):
+                mask = np.expand_dims(np.array(binary_masks[i]),2).repeat(3, axis=2).astype(np.float32)/255.
+                img = (np.array(images[i]).astype(np.uint8) * mask + np.array(resized_frames_ori[i]).astype(np.uint8) * (1 - mask)).astype(np.uint8)
+                comp_frames.append(Image.fromarray(img))
+        else:
+            comp_frames = simple_flicker_smoothing(images, alpha=0.15)
+
         if if_save_video:
             default_fps = fps
-            writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"),
+            prefix = ''.join(random.choice("0123456789") for _ in range(6))
+            priori_path = os.path.join(output_path, f"priori_{prefix}.mp4")        
+            os.makedirs(os.path.dirname(priori_path), exist_ok=True)
+            
+            writer = cv2.VideoWriter(priori_path, cv2.VideoWriter_fourcc(*"mp4v"),
                                 default_fps, comp_frames[0].size)
             for f in range(real_video_length):
                 img = np.array(comp_frames[f]).astype(np.uint8)
@@ -519,8 +503,62 @@ class DiffuEraser:
             writer.release()
         ################################
 
-        return output_path,comp_frames,prioris
+        return comp_frames
             
-
-
-
+def get_practical_adaptive_kernel(image_size, mask_array=None, base_size=9, reference=512):
+    """
+    实用的自适应核大小计算 - 平衡图像和遮罩特征
+    """
+    # 基于图像尺寸的核大小
+    max_dim = max(image_size)
+    image_scale = np.sqrt(max_dim / reference)
+    kernel_from_image = int(base_size * image_scale)
+    
+    # 如果有遮罩信息，也考虑遮罩特征
+    if mask_array is not None:
+        mask_area = np.sum(mask_array > 0)
+        if mask_area > 0:
+            h, w = mask_array.shape[:2]
+            total_area = h * w
+            
+            # 遮罩相对大小
+            relative_size = mask_area / total_area
+            
+            # 小遮罩需要更小的核
+            if relative_size < 0.01:  # 遮罩小于1%
+                kernel = max(3, int(kernel_from_image * 0.5))
+            elif relative_size < 0.05:  # 遮罩小于5%
+                kernel = max(5, int(kernel_from_image * 0.7))
+            else:
+                kernel = kernel_from_image
+        else:
+            kernel = kernel_from_image
+    else:
+        kernel = kernel_from_image
+    
+    # 确保是奇数且在合理范围内
+    kernel = max(3, min(51, kernel if kernel % 2 == 1 else kernel + 1))
+    return (kernel, kernel)
+def simple_flicker_smoothing(frames, alpha=0.1):
+    """
+    简单的闪烁平滑，最小化对动态内容的影响
+    """
+    if len(frames) < 2:
+        return frames
+    
+    smoothed_frames = [frames[0]]
+    
+    for i in range(1, len(frames)):
+        current = np.array(frames[i]).astype(np.float32)
+        previous = np.array(frames[i-1]).astype(np.float32)
+        
+        # 只对变化很小的像素进行平滑（可能是闪烁）
+        diff = np.abs(current - previous)
+        static_mask = (diff < 10.0).astype(np.float32)  # 阈值可根据需要调整
+        
+        # 只在静态区域应用轻微平滑
+        smoothed = previous * alpha * static_mask + current * (1 - alpha * static_mask)
+        
+        smoothed_frames.append(Image.fromarray(np.clip(smoothed, 0, 255).astype(np.uint8)))
+    
+    return smoothed_frames

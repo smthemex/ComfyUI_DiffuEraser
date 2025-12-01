@@ -526,6 +526,8 @@ class StableDiffusionDiffuEraserPipeline(
 
     # Copied from diffusers.pipelines.text_to_video_synthesis/pipeline_text_to_video_synth.TextToVideoSDPipeline.decode_latents
     def decode_latents(self, latents, weight_dtype):
+        if self.vae.device!= latents.device:
+            self.vae.to(latents.device)
         latents = 1 / self.vae.config.scaling_factor * latents
         video = []
         for t in range(latents.shape[0]):
@@ -1052,6 +1054,8 @@ class StableDiffusionDiffuEraserPipeline(
         text_encoder_lora_scale = (
             self.cross_attention_kwargs.get("scale", None) if self.cross_attention_kwargs is not None else None
         )
+        if self.text_encoder.device != device:
+            self.text_encoder.to(device)
         prompt_embeds, negative_prompt_embeds = self.encode_prompt(
             prompt,
             device,
@@ -1063,6 +1067,7 @@ class StableDiffusionDiffuEraserPipeline(
             lora_scale=text_encoder_lora_scale,
             clip_skip=self.clip_skip,
         )
+        self.text_encoder.to("cpu")
         # For classifier free guidance, we need to do two forward passes.
         # Here we concatenate the unconditional and text embeddings into a single batch
         # to avoid doing two forward passes
@@ -1115,7 +1120,8 @@ class StableDiffusionDiffuEraserPipeline(
         # 5. Prepare timesteps
         timesteps, num_inference_steps = retrieve_timesteps(self.scheduler, num_inference_steps, device, timesteps)
         self._num_timesteps = len(timesteps)
-
+        if self.vae.device != device:
+            self.vae.to(device)
         # 6. Prepare latent variables
         num_channels_latents = self.unet.config.in_channels
         latents, noise = self.prepare_latents(
@@ -1129,7 +1135,7 @@ class StableDiffusionDiffuEraserPipeline(
             generator,
             latents,
         )
-
+        
         # 6.1 prepare condition latents
         images = torch.cat(images)
         images = images.to(dtype=images[0].dtype)
@@ -1138,7 +1144,7 @@ class StableDiffusionDiffuEraserPipeline(
         for i in range(0, images.shape[0], num):
             conditioning_latents.append(self.vae.encode(images[i : i + num]).latent_dist.sample())
         conditioning_latents = torch.cat(conditioning_latents, dim=0)
-
+        self.vae.to("cpu")
         conditioning_latents = conditioning_latents * self.vae.config.scaling_factor  #[(f c h w],c2=4
 
         original_masks = torch.cat(original_masks) 
@@ -1187,7 +1193,6 @@ class StableDiffusionDiffuEraserPipeline(
         count = torch.zeros_like(latents)
         value = torch.zeros_like(latents)
         
-
         # 8. Denoising loop
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
         is_unet_compiled = is_compiled_module(self.unet)
@@ -1338,7 +1343,9 @@ class StableDiffusionDiffuEraserPipeline(
         if output_type == "pt":
             video = video_tensor
         else:
-            video = self.image_processor.postprocess(video_tensor, output_type=output_type)
+            video = []
+            for i in range(video_tensor.shape[0]):
+                video.append(self.image_processor.postprocess(video_tensor[i:i+1], output_type=output_type)[0])
 
         # Offload all models
         self.maybe_free_model_hooks()
