@@ -2,15 +2,13 @@
 [DiffuEraser](https://github.com/lixiaowen-xw/DiffuEraser) is  a diffusion model for video Inpainting, you can use it in ComfyUI
 
 # Update
-* 新增单mask模式，处理固定水印用，见示例图  
-* Added single mask mode for handling fixed watermarks,new example;   
-* 方法前置处理的视频反而更好，可能是代码的问题，所以增加输出前置视频
-* The video pre processed by the method is actually better, which may be a problem with the code, so adding output pre processed video is necessary
+* use cofmyUI v3 mode,fix bugs,add new diffuser support,you can run 1280*720 (12GVRAM) now
+* 修复不少bug，现在12G也能跑1280*720，DiffuEraser的sample 节点的 blend支持2种输出，避免闪烁，避免loop循环的反复加载模型
 
 
 # 1. Installation
 
-In the ./ComfyUI /custom_node directory, run the following:   
+In the ./ComfyUI /custom_nodes directory, run the following:   
 ```
 git clone https://github.com/smthemex/ComfyUI_DiffuEraser.git
 ```
@@ -62,14 +60,7 @@ Or
 * video2mask : If only the input video is available, please enable this option (generate mask video). 如果只有输入视频，请开启此选项（生成遮罩视频）
   
 # 5 Example
-* Use one mask
-![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/examplea.png)
-* Use RMBG or BiRefNet make video2mask 使用RMBG or BiRefNet将 输入视频转为mask,注意RMBG不能商用.
-![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example.png)
-* Use Mask video 使用遮罩视频,可以用其他方法,如sam2一类转化: 
-![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/exampleb.png)
-
-
+![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example_workflows/example.png)
 # 6.Citation
 ```
 @misc{li2025diffueraserdiffusionmodelvideo,
