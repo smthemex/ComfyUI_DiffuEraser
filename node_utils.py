@@ -133,10 +133,17 @@ def tensor2pil_list(image,width,height):
 
 def tensor2pil_upscale(img_tensor, width, height):
     samples = img_tensor.movedim(-1, 1)
-    img = common_upscale(samples, width, height, "nearest-exact", "center")
+    img = common_upscale(samples, width, height, "bilinear", "center")
     samples = img.movedim(1, -1)
     img_pil = tensor_to_pil(samples)
     return img_pil
+
+def nomarl_upscale(img, width, height):
+    samples = img.movedim(-1, 1)
+    img = common_upscale(samples, width, height, "bilinear", "center")
+    samples = img.movedim(1, -1)
+    img = tensor_to_pil(samples)
+    return img
 
 
 def tensor2cv(tensor_image):

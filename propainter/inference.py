@@ -36,13 +36,14 @@ def resize_frames(frames, size=None):
     if size is not None:
         out_size = size
         process_size = (out_size[0]-out_size[0]%8, out_size[1]-out_size[1]%8)
-        frames = [f.resize(process_size) for f in frames]
+        if not out_size == process_size:
+            frames = [f.resize(process_size) for f in frames]
+            
     else:
         out_size = frames[0].size
         process_size = (out_size[0]-out_size[0]%8, out_size[1]-out_size[1]%8)
         if not out_size == process_size:
-            frames = [f.resize(process_size) for f in frames]
-        
+            frames = [f.resize(process_size) for f in frames]       
     return frames, process_size, out_size
 
 #  read frames from video
@@ -152,45 +153,50 @@ def file_exists(directory, filename):
     return os.path.isfile(file_path)
 
 class Propainter:
-    def __init__(
-            self, propainter_model_dir, device):
+    def __init__(self, device):
         self.device = device
+
+    def load_propainter(self,fix_raft_path,flow_path,ProPainter_path):
         ##############################################
         # set up RAFT and flow competition model
         ##############################################
 
-        if file_exists(propainter_model_dir,'raft-things.pth'):
-            ckpt_path=os.path.join(propainter_model_dir,'raft-things.pth')
-        else:
-            ckpt_path = load_file_from_url(url=os.path.join(pretrain_model_url, 'raft-things.pth'), 
-                                        model_dir=propainter_model_dir, progress=True, file_name=None)
-        self.fix_raft = RAFT_bi(ckpt_path, device)
-        if file_exists(propainter_model_dir,'recurrent_flow_completion.pth'):
-            ckpt_path_=os.path.join(propainter_model_dir,'recurrent_flow_completion.pth')
-        else:
-            ckpt_path_ = load_file_from_url(url=os.path.join(pretrain_model_url, 'recurrent_flow_completion.pth'), 
-                                        model_dir=propainter_model_dir, progress=True, file_name=None)
-        self.fix_flow_complete = RecurrentFlowCompleteNet(ckpt_path_)
+        # if file_exists(propainter_model_dir,'raft-things.pth'):
+        #     ckpt_path=os.path.join(propainter_model_dir,'raft-things.pth')
+        # else:
+        #     ckpt_path = load_file_from_url(url=os.path.join(pretrain_model_url, 'raft-things.pth'), 
+        #                                 model_dir=propainter_model_dir, progress=True, file_name=None)
+        self.fix_raft = RAFT_bi(fix_raft_path, self.device)
+        # if file_exists(propainter_model_dir,'recurrent_flow_completion.pth'):
+        #     ckpt_path_=os.path.join(propainter_model_dir,'recurrent_flow_completion.pth')
+        # else:
+        #     ckpt_path_ = load_file_from_url(url=os.path.join(pretrain_model_url, 'recurrent_flow_completion.pth'), 
+        #                                 model_dir=propainter_model_dir, progress=True, file_name=None)
+        self.fix_flow_complete = RecurrentFlowCompleteNet(flow_path)
         for p in self.fix_flow_complete.parameters():
             p.requires_grad = False
-        self.fix_flow_complete.to(device)
+        self.fix_flow_complete.to(self.device)
         self.fix_flow_complete.eval()
 
         ##############################################
         # set up ProPainter model
         ##############################################
 
-        if file_exists(propainter_model_dir,'ProPainter.pth'):
-            ckpt_path_p=os.path.join(propainter_model_dir,'ProPainter.pth')
-        else:
-            ckpt_path_p = load_file_from_url(url=os.path.join(pretrain_model_url, 'ProPainter.pth'), 
-                                        model_dir=propainter_model_dir, progress=True, file_name=None)
-        self.model = InpaintGenerator(model_path=ckpt_path_p).to(device)
+        # if file_exists(propainter_model_dir,'ProPainter.pth'):
+        #     ckpt_path_p=os.path.join(propainter_model_dir,'ProPainter.pth')
+        # else:
+        #     ckpt_path_p = load_file_from_url(url=os.path.join(pretrain_model_url, 'ProPainter.pth'), 
+        #                                 model_dir=propainter_model_dir, progress=True, file_name=None)
+        self.model = InpaintGenerator(model_path=ProPainter_path).to(self.device)
         self.model.eval()
+
     def to(self, device):
+        self.device = device
+        self.fix_raft.to(device)
+        self.fix_flow_complete.to(device)
         self.model.to(device)
 
-    def forward(self, video, mask, output_path,load_videobypath=False, resize_ratio=0.6, video_length=2, height=-1, width=-1,
+    def forward(self, video, mask,load_videobypath=False, resize_ratio=1.0, video_length=2, height=-1, width=-1,
                 mask_dilation=4, ref_stride=10, neighbor_length=10, subvideo_length=80,
                 raft_iter=20, save_fps=24.0, fp16=True):
         
@@ -217,13 +223,21 @@ class Propainter:
 
         longer_edge = max(size[0], size[1])
         if(longer_edge > MaxSideThresh): 
+            print('input video size is too large, resize to', MaxSideThresh)
             scale = MaxSideThresh / longer_edge
             resize_ratio = resize_ratio * scale
-        if not resize_ratio == 1.0:
-            size = (int(resize_ratio * size[0]), int(resize_ratio * size[1]))
+        if  resize_ratio < 1.0: # if longer_edge>960 resize to 960
+            origin_size = (int(resize_ratio * size[0]), int(resize_ratio * size[1]))
+            frames, size, out_size = resize_frames(frames, origin_size) 
+            mask,size_,out_size_=resize_frames(mask, origin_size)
+        else:
+            origin_size = size
+            frames, size, out_size = resize_frames(frames, origin_size)
+            mask,size_,out_size_ = resize_frames(mask, origin_size)
 
-        frames, size, out_size = resize_frames(frames, size)
-        #print('input video size:', size,"out_size",out_size)
+        origin_frames=frames.copy()
+        origin_masks=mask.copy()
+
         fps = save_fps if fps is None else fps
 
         ################ read mask ################ 
@@ -239,8 +253,8 @@ class Propainter:
             flow_mask_dilates=mask_dilation
             mask_dilates=mask_dilation
             for i in mask.copy():
-                if size is not None:
-                    i = i.resize(size, Image.NEAREST)
+                # if size is not None: # don't resize mask
+                #     i = i.resize(size, Image.NEAREST)
                 mask_img = np.array(i.convert('L'))
 
                 # Dilate 8 pixel so that all known pixel is trustworthy
@@ -552,19 +566,19 @@ class Propainter:
             torch.cuda.empty_cache()
 
         ##save composed video##
-        
-        comp_frames = [cv2.resize(f, out_size) for f in comp_frames]
-        
-        writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"),
-                                fps, (comp_frames[0].shape[1],comp_frames[0].shape[0]))
-        for f in range(video_length):
-            frame = comp_frames[f].astype(np.uint8)
-            writer.write(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        writer.release()
-       
-        torch.cuda.empty_cache()
 
-        return output_path
+        #comp_frames = [cv2.resize(f, out_size) for f in comp_frames]
+        pil_frames =  [Image.fromarray(f) for f in comp_frames]
+        # writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"),
+        #                         fps, (comp_frames[0].shape[1],comp_frames[0].shape[0]))
+        # for f in range(video_length):
+        #     frame = comp_frames[f].astype(np.uint8)
+        #     writer.write(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        # writer.release()
+       
+        # torch.cuda.empty_cache()
+
+        return pil_frames
 
 
     
