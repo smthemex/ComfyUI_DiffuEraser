@@ -12,7 +12,7 @@ from .node_utils import  load_images,tensor2pil_list,image2masks,nomarl_upscale
 import folder_paths
 from .run_diffueraser import load_diffueraser,load_propainter
 from diffusers.hooks import apply_group_offloading
-
+import copy
 MAX_SEED = np.iinfo(np.int32).max
 current_node_path = os.path.dirname(os.path.abspath(__file__))
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
@@ -106,7 +106,8 @@ class DiffuEraser_PreData(io.ComfyNode):
             print("*********** Use input video and repo to make masks **************")
             init_mask=image2masks(seg_repo,video_image)
         elif video_mask_image is not None:
-            if isinstance(video_mask_image,torch.Tensor) and len(video_mask_image)<4:
+          
+            if not  isinstance(video_mask_image,torch.Tensor):
                 raise "video_mask_image is not a normal comfyUI image tensor, need a shape like  b,h,w,c"
             else:
                 init_mask=tensor2pil_list(video_mask_image,width,height)
@@ -144,7 +145,7 @@ class Propainter_Sampler(io.ComfyNode):
                 io.Conditioning.Input("conditioning"),
                 io.Float.Input("fps", force_input=True),
                 io.Int.Input("video_length", default=10, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
-                io.Int.Input("mask_dilation_iter", default=8, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
+                io.Int.Input("mask_dilation_iter", default=2, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
                 io.Int.Input("ref_stride", default=10, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
                 io.Int.Input("neighbor_length", default=10, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
                 io.Int.Input("subvideo_length", default=50, min=1, max=1024,step=1,display_mode=io.NumberDisplay.number),
@@ -163,7 +164,7 @@ class Propainter_Sampler(io.ComfyNode):
         conditioning["video_length"]=video_length
         conditioning["mask_dilation_iter"]=mask_dilation_iter
        
-        Propainter_img=model.forward(conditioning["video_image"], conditioning["init_mask"],load_videobypath=False,video_length=video_length, height= conditioning["height"],width=conditioning["width"],
+        Propainter_img=model.forward(copy.deepcopy(conditioning["video_image"]), copy.deepcopy(conditioning["init_mask"]),load_videobypath=False,video_length=video_length, height= conditioning["height"],width=conditioning["width"],
                         ref_stride=ref_stride, neighbor_length=neighbor_length, subvideo_length = subvideo_length,
                         mask_dilation = mask_dilation_iter,save_fps=fps) 
         conditioning["prioris"]=Propainter_img
@@ -202,7 +203,7 @@ class DiffuEraser_Sampler(io.ComfyNode):
         model.pipeline.enable_xformers_memory_efficient_attention()
         apply_group_offloading(model.pipeline.unet, onload_device=torch.device("cuda"), offload_type="block_level", num_blocks_per_group=unet_group)
         apply_group_offloading(model.pipeline.brushnet, onload_device=torch.device("cuda"), offload_type="block_level", num_blocks_per_group=brush_group)
-        image_list=model.forward(conditioning["video_image"], conditioning["init_mask"], conditioning["prioris"],folder_paths.get_output_directory(),load_videobypath=False,
+        image_list=model.forward( copy.deepcopy(conditioning["video_image"]), copy.deepcopy(conditioning["init_mask"]), copy.deepcopy(conditioning["prioris"]),folder_paths.get_output_directory(),load_videobypath=False,
                                 max_img_size = max_img_size, video_length=conditioning["video_length"], mask_dilation_iter=conditioning["mask_dilation_iter"],seed=seed,blended=blended,
                                num_inference_steps=steps,fps=conditioning["fps"],img_size=(conditioning["width"],conditioning["height"]),if_save_video=save_result_video)
         
