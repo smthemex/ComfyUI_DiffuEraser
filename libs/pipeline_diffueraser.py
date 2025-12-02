@@ -1012,21 +1012,21 @@ class StableDiffusionDiffuEraserPipeline(
             )
 
         # 1. Check inputs. Raise error if not correct
-        self.check_inputs(
-            prompt,
-            images,
-            masks,
-            callback_steps,
-            negative_prompt,
-            prompt_embeds,
-            negative_prompt_embeds,
-            ip_adapter_image,
-            ip_adapter_image_embeds,
-            brushnet_conditioning_scale,
-            control_guidance_start,
-            control_guidance_end,
-            callback_on_step_end_tensor_inputs,
-        )
+        # self.check_inputs(
+        #     prompt,
+        #     images,
+        #     masks,
+        #     callback_steps,
+        #     negative_prompt,
+        #     prompt_embeds,
+        #     negative_prompt_embeds,
+        #     ip_adapter_image,
+        #     ip_adapter_image_embeds,
+        #     brushnet_conditioning_scale,
+        #     control_guidance_start,
+        #     control_guidance_end,
+        #     callback_on_step_end_tensor_inputs,
+        # )
 
         self._guidance_scale = guidance_scale
         self._clip_skip = clip_skip
@@ -1049,25 +1049,28 @@ class StableDiffusionDiffuEraserPipeline(
         )
         guess_mode = guess_mode or global_pool_conditions
         video_length = len(images)
-
-        # 3. Encode input prompt
-        text_encoder_lora_scale = (
-            self.cross_attention_kwargs.get("scale", None) if self.cross_attention_kwargs is not None else None
-        )
-        if self.text_encoder.device != device:
-            self.text_encoder.to(device)
-        prompt_embeds, negative_prompt_embeds = self.encode_prompt(
-            prompt,
-            device,
-            num_images_per_prompt,
-            self.do_classifier_free_guidance,
-            negative_prompt,
-            prompt_embeds=prompt_embeds,
-            negative_prompt_embeds=negative_prompt_embeds,
-            lora_scale=text_encoder_lora_scale,
-            clip_skip=self.clip_skip,
-        )
-        self.text_encoder.to("cpu")
+        if prompt is not None:
+            # 3. Encode input prompt
+            text_encoder_lora_scale = (
+                self.cross_attention_kwargs.get("scale", None) if self.cross_attention_kwargs is not None else None
+            )
+            if self.text_encoder.device != device:
+                self.text_encoder.to(device)
+            prompt_embeds, negative_prompt_embeds = self.encode_prompt(
+                prompt,
+                device,
+                num_images_per_prompt,
+                self.do_classifier_free_guidance,
+                negative_prompt,
+                prompt_embeds=prompt_embeds,
+                negative_prompt_embeds=negative_prompt_embeds,
+                lora_scale=text_encoder_lora_scale,
+                clip_skip=self.clip_skip,
+            )
+            self.text_encoder.to("cpu")
+        else:
+            prompt_embeds= prompt_embeds.to(self.unet.device,self.unet.dtype)
+            print(prompt_embeds.shape)
         # For classifier free guidance, we need to do two forward passes.
         # Here we concatenate the unconditional and text embeddings into a single batch
         # to avoid doing two forward passes
@@ -1334,6 +1337,7 @@ class StableDiffusionDiffuEraserPipeline(
             torch.cuda.empty_cache()
 
         if  output_type == "latent":
+            
             image = latents
             has_nsfw_concept = None
             return DiffuEraserPipelineOutput(frames=image, nsfw_content_detected=has_nsfw_concept)
