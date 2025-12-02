@@ -114,7 +114,7 @@ class DiffuEraser_PreData(io.ComfyNode):
         elif video_mask is not None:
             if isinstance(video_mask,torch.Tensor) and len(video_mask)>3:
                 raise "video_mask is not a normal comfyUI mask tensor, need a shape like  b,h,w"
-            init_mask=nomarl_upscale( video_mask.reshape((-1, 1, video_mask.shape[-2], video_mask.shape[-1])).movedim(1, -1).expand(-1, -1, -1, 3) ,width,height)
+            init_mask=tensor2pil_list( video_mask.reshape((-1, 1, video_mask.shape[-2], video_mask.shape[-1])).movedim(1, -1).expand(-1, -1, -1, 3) ,width,height)
         else:   
             raise "no video_mask,you can enable video2mask and fill a rmbg or BiRefNet repo to generate mask from video_image,or link video_mask from other node"
         
