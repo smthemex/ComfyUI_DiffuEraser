@@ -2,6 +2,7 @@
 [DiffuEraser](https://github.com/lixiaowen-xw/DiffuEraser) is  a diffusion model for video Inpainting, you can use it in ComfyUI
 
 # Update
+* 对于水印，mask_dilation_iter（遮罩膨胀系数）应适当调低，比如2，DiffuEraser的推理结果始终不是太理想，可能要重构一次代码，比较耗时，常规使用Propainter的采样也就够了（最大边是960，应用了再超分吧）
 * use cofmyUI v3 mode,fix bugs,add new diffuser support,you can run 1280*720 (12GVRAM) now
 * 修复不少bug，现在12G也能跑1280*720，DiffuEraser的sample 节点的 blend支持2种输出，关闭为降低闪烁，开启为使用合成，避免loop循环的反复加载模型
 
