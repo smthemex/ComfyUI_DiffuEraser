@@ -20,11 +20,12 @@ from diffusers.schedulers import TCDScheduler
 from diffusers.image_processor import PipelineImageInput, VaeImageProcessor
 from diffusers.utils.torch_utils import randn_tensor
 from transformers import AutoTokenizer, PretrainedConfig
-
+from safetensors.torch import load_file
 from .unet_motion_model import MotionAdapter, UNetMotionModel
 from .brushnet_CA import BrushNetModel
 from .unet_2d_condition import UNet2DConditionModel
 from .pipeline_diffueraser import StableDiffusionDiffuEraserPipeline
+
 
 def extract_step_number(ckpt_name):
     # 使用正则表达式查找 "step" 前面的数字
@@ -207,16 +208,20 @@ class DiffuEraser:
                     subfolder="tokenizer",
                     use_fast=False,
                 )
-        try: 
-            pipe = StableDiffusionPipeline.from_single_file(
-            ckpt_path,config=repo, original_config=original_config_file)
-        except:
-            pipe = StableDiffusionPipeline.from_single_file(
-            ckpt_path, config=repo,original_config_file=original_config_file)
+        vae_config=AutoencoderKL.load_config(os.path.join(repo,"vae/config.json"))
+        self.vae=AutoencoderKL.from_config(vae_config)
+        self.vae.load_state_dict(load_file(ckpt_path) if ckpt_path.endswith(".safetensors") else torch.load(ckpt_path,weights_only=False),strict=False)
+        #self.vae=AutoencoderKL.from_single_file(ckpt_path,config=os.path.join(repo,"vae") )
+        # try: 
+        #     pipe = StableDiffusionPipeline.from_single_file(
+        #     ckpt_path,config=repo, original_config=original_config_file)
+        # except:
+        #     pipe = StableDiffusionPipeline.from_single_file(
+        #     ckpt_path, config=repo,original_config_file=original_config_file)
 
-        self.text_encoder = pipe.text_encoder
-        self.vae = pipe.vae
-        del pipe 
+        # self.text_encoder = pipe.text_encoder
+        #self.vae = pipe.vae
+        #del pipe 
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -228,14 +233,14 @@ class DiffuEraser:
         self.pipeline = StableDiffusionDiffuEraserPipeline.from_pretrained(
             repo,
             vae=self.vae,
-            text_encoder=self.text_encoder,
+            text_encoder=None,
             tokenizer=self.tokenizer,
             unet=self.unet_main,
             brushnet=self.brushnet,
             safety_checker=None,#no need 
         ).to(self.device, torch.float16)
-        self.vae=None
-        self.text_encoder=None
+        # self.vae=None
+        # self.text_encoder=None
         self.pipeline.scheduler = UniPCMultistepScheduler.from_config(self.pipeline.scheduler.config)
         self.pipeline.set_progress_bar_config(disable=True)
 
@@ -277,7 +282,7 @@ class DiffuEraser:
         self.device=device
         self.pipeline.to(device)
 
-    def forward(self, validation_image, validation_mask, prioris, output_path,load_videobypath=False,
+    def forward(self, validation_image, validation_mask, prioris, output_path,positive,load_videobypath=False,
                 max_img_size = 1280, video_length=2, mask_dilation_iter=4,
                 nframes=22, seed=None, revision = None, guidance_scale=None, blended=True,num_inference_steps=None,fps=24,img_size=(512, 512),if_save_video=False):
         validation_prompt = ""  # 
@@ -295,7 +300,7 @@ class DiffuEraser:
             n_total_frames=len(validation_image)
             n_clip = int(np.ceil(n_total_frames/nframes))
         video_len = len(frames)
-
+        #frames[0].save("input0.png")
         ################     read mask    ################ 
         if load_videobypath:
             validation_masks_input, validation_images_input = read_mask(validation_mask, fps, video_len, img_size, mask_dilation_iter, frames)
@@ -323,7 +328,7 @@ class DiffuEraser:
                 validation_images_input.append(masked_image)
        
         ################    read priori   ################  
-       
+        #validation_images_input[0].save("input1.png")
         #prioris = read_priori(priori, fps, n_total_frames, img_size)
         if prioris[0].size != img_size:
             prioris = [img.resize(img_size) for img in prioris]
@@ -340,7 +345,7 @@ class DiffuEraser:
         validation_masks_input = resize_frames(validation_masks_input)
         validation_images_input = resize_frames(validation_images_input)
         resized_frames = resize_frames(frames)
-
+        #resized_frames[0].save("input2.png")
 
         ##############################################
         # DiffuEraser inference
@@ -381,8 +386,8 @@ class DiffuEraser:
             latents = []
             num=4
             for i in range(0, pixel_values.shape[0], num):
-                latents.append(self.pipeline.vae.encode(pixel_values[i : i + num]).latent_dist.sample())
-            latents = torch.cat(latents, dim=0)
+                latents.append(self.pipeline.vae.encode(pixel_values[i : i + num]).latent_dist.sample())      
+            latents = torch.cat(latents, dim=0)  
         latents = latents * self.pipeline.vae.config.scaling_factor #[(b f), c1, h, w], c1=4
         self.pipeline.vae.to("cpu")
         torch.cuda.empty_cache()  
@@ -391,6 +396,7 @@ class DiffuEraser:
 
         validation_masks_input_ori = copy.deepcopy(validation_masks_input)
         resized_frames_ori = copy.deepcopy(resized_frames)
+
         ################  Pre-inference  ################
         if n_total_frames > nframes*2: ## do pre-inference only when number of input frames is larger than nframes*2
             ## sample
@@ -408,9 +414,10 @@ class DiffuEraser:
             with torch.no_grad():
                 latents_pre_out = self.pipeline(
                     num_frames=nframes, 
-                    prompt=validation_prompt, 
+                    prompt=None, 
                     images=validation_images_input_pre, 
                     masks=validation_masks_input_pre, 
+                    prompt_embeds=positive[0][0], 
                     num_inference_steps=num_inference_steps_final, 
                     generator=generator,
                     guidance_scale=guidance_scale_final,
@@ -439,6 +446,7 @@ class DiffuEraser:
                 validation_masks_input[index] = black_image
                 validation_images_input[index] = images_pre_out[i]
                 resized_frames[index] = images_pre_out[i]
+          
         else:
             latents_pre_out=None
             sample_index=None
@@ -452,9 +460,10 @@ class DiffuEraser:
         with torch.no_grad():
             images = self.pipeline(
                 num_frames=nframes, 
-                prompt=validation_prompt, 
+                prompt=None, 
                 images=validation_images_input, 
-                masks=validation_masks_input, 
+                masks=validation_masks_input,
+                prompt_embeds=positive[0][0], 
                 num_inference_steps=num_inference_steps_final, 
                 generator=generator,
                 guidance_scale=guidance_scale_final,
@@ -469,15 +478,11 @@ class DiffuEraser:
         binary_masks = validation_masks_input_ori
         mask_blurreds = []
         if blended:
-            # blur, you can adjust the parameters for better performance
-            first_mask_array = np.array(binary_masks[0])
-            mask_size = binary_masks[0].size  # (width, height)
-             # 使用遮罩信息计算自适应核大小
-            blur_kernel = get_practical_adaptive_kernel(mask_size, first_mask_array)
-            print(f"Using adaptive blur kernel: {blur_kernel} for mask size: {mask_size}")
             for i in range(len(binary_masks)):
-                mask_blurred = cv2.GaussianBlur(np.array(binary_masks[i]), blur_kernel, 0)/255.
-                binary_mask = 1-(1-np.array(binary_masks[i])/255.) * (1-mask_blurred)
+                mask_array = np.array(binary_masks[i])
+                mask_blurred = morphological_edge_blur(np.array(mask_array), sigma=2.0, edge_width=3)       
+                #mask_blurred = cv2.GaussianBlur(np.array(binary_masks[i]), blur_kernel, 0)/255.
+                binary_mask = 1-(1-mask_array/255.) * (1-mask_blurred)
                 mask_blurreds.append(Image.fromarray((binary_mask*255).astype(np.uint8)))
             binary_masks = mask_blurreds
 
@@ -504,41 +509,6 @@ class DiffuEraser:
         ################################
 
         return comp_frames
-            
-def get_practical_adaptive_kernel(image_size, mask_array=None, base_size=9, reference=512):
-    """
-    实用的自适应核大小计算 - 平衡图像和遮罩特征
-    """
-    # 基于图像尺寸的核大小
-    max_dim = max(image_size)
-    image_scale = np.sqrt(max_dim / reference)
-    kernel_from_image = int(base_size * image_scale)
-    
-    # 如果有遮罩信息，也考虑遮罩特征
-    if mask_array is not None:
-        mask_area = np.sum(mask_array > 0)
-        if mask_area > 0:
-            h, w = mask_array.shape[:2]
-            total_area = h * w
-            
-            # 遮罩相对大小
-            relative_size = mask_area / total_area
-            
-            # 小遮罩需要更小的核
-            if relative_size < 0.01:  # 遮罩小于1%
-                kernel = max(3, int(kernel_from_image * 0.5))
-            elif relative_size < 0.05:  # 遮罩小于5%
-                kernel = max(5, int(kernel_from_image * 0.7))
-            else:
-                kernel = kernel_from_image
-        else:
-            kernel = kernel_from_image
-    else:
-        kernel = kernel_from_image
-    
-    # 确保是奇数且在合理范围内
-    kernel = max(3, min(51, kernel if kernel % 2 == 1 else kernel + 1))
-    return (kernel, kernel)
 def simple_flicker_smoothing(frames, alpha=0.1):
     """
     简单的闪烁平滑，最小化对动态内容的影响
@@ -562,3 +532,41 @@ def simple_flicker_smoothing(frames, alpha=0.1):
         smoothed_frames.append(Image.fromarray(np.clip(smoothed, 0, 255).astype(np.uint8)))
     
     return smoothed_frames
+
+def morphological_edge_blur(mask, sigma=3.0, edge_width=5):
+    """
+    使用形态学操作提取边缘并只模糊边缘区域
+    """
+    if mask.dtype != np.float32:
+        mask_float = mask.astype(np.float32)
+    else:
+        mask_float = mask.copy()
+    
+    # 转换为二值图像
+    binary_mask = (mask_float > 0.5).astype(np.uint8)
+    
+    if not np.any(binary_mask):
+        return mask_float
+    
+    # 创建边缘遮罩
+    # 腐蚀操作缩小遮罩
+    kernel_size = max(3, edge_width)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+    eroded = cv2.erode(binary_mask, kernel, iterations=1)
+    
+    # 边缘 = 原始遮罩 - 腐蚀后的遮罩
+    edge_mask = binary_mask - eroded
+    
+    # 只对边缘区域进行高斯模糊
+    edge_region = mask_float * edge_mask.astype(np.float32)
+    
+    # 模糊边缘区域
+    ksize = int(2 * np.ceil(3 * sigma) + 1)
+    ksize = max(3, min(101, ksize if ksize % 2 == 1 else ksize + 1))
+    blurred_edges = cv2.GaussianBlur(edge_region, (ksize, ksize), sigmaX=sigma, sigmaY=sigma)
+    
+    # 合成结果：内部保持原值，边缘使用模糊值
+    inner_region = mask_float * eroded.astype(np.float32)
+    result = inner_region + blurred_edges
+    
+    return np.clip(result, 0.0, 1.0)
