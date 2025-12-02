@@ -3,7 +3,7 @@
 
 # Update
 * use cofmyUI v3 mode,fix bugs,add new diffuser support,you can run 1280*720 (12GVRAM) now
-* 修复不少bug，现在12G也能跑1280*720，DiffuEraser的sample 节点的 blend支持2种输出，避免闪烁，避免loop循环的反复加载模型
+* 修复不少bug，现在12G也能跑1280*720，DiffuEraser的sample 节点的 blend支持2种输出，关闭为降低闪烁，开启为使用合成，避免loop循环的反复加载模型
 
 
 # 1. Installation
@@ -55,13 +55,13 @@ Or
         |--BiRefNet_config.py
         |--handler.py
 ```
-
-# 4.Tips
-* video2mask : If only the input video is available, please enable this option (generate mask video). 如果只有输入视频，请开启此选项（生成遮罩视频）
   
-# 5 Example
+# 4 Example
 ![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example_workflows/example.png)
-# 6.Citation
+* use single mask 
+![](https://github.com/smthemex/ComfyUI_DiffuEraser/blob/main/example_workflows/example1.png)
+
+# 5.Citation
 ```
 @misc{li2025diffueraserdiffusionmodelvideo,
    title={DiffuEraser: A Diffusion Model for Video Inpainting}, 
