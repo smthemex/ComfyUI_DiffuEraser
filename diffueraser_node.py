@@ -90,7 +90,7 @@ class DiffuEraser_PreData(io.ComfyNode):
                 io.Image.Input("images"),
                 io.String.Input("seg_repo",default="briaai/RMBG-2.0"),
                 io.Image.Input("video_mask_image",optional=True),
-                io.Image.Input("video_mask",optional=True),
+                io.Mask.Input("video_mask",optional=True),
             ],
             outputs=[
                  io.Conditioning.Output(display_name="conditioning"),
