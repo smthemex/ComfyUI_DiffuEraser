@@ -2,7 +2,8 @@
 [DiffuEraser](https://github.com/lixiaowen-xw/DiffuEraser) is  a diffusion model for video Inpainting, you can use it in ComfyUI
 
 # Update
-* 对于水印，mask_dilation_iter（遮罩膨胀系数）应适当调低，比如2，DiffuEraser的推理结果始终不是太理想，可能要重构一次代码，比较耗时，常规使用Propainter的采样也就够了（最大边是960，应用了再超分吧）
+* 使用官方推荐的vae文件，clip-l改成comfyUI 默认的，由此剔除掉sd15底模；
+* 对于水印，mask_dilation_iter（遮罩膨胀系数）应适当调低，比如2，常规使用Propainter的采样也就够了（最大边是960，应用了再超分吧） 
 * use cofmyUI v3 mode,fix bugs,add new diffuser support,you can run 1280*720 (12GVRAM) now
 * 修复不少bug，现在12G也能跑1280*720，DiffuEraser的sample 节点的 blend支持2种输出，关闭为降低闪烁，开启为使用合成，避免loop循环的反复加载模型
 
@@ -21,15 +22,18 @@ git clone https://github.com/smthemex/ComfyUI_DiffuEraser.git
 pip install -r requirements.txt
 ```
 # 3. Models
-* sd1.5 [address](https://modelscope.cn/models/AI-ModelScope/stable-diffusion-v1-5/files) v1-5-pruned-emaonly.safetensors #example
+* vae [links](https://huggingface.co/stabilityai/sd-vae-ft-mse/tree/main)
+* clip-l， comfyUI normal
 * pcm 1.5 lora [address](https://huggingface.co/wangfuyun/PCM_Weights/tree/main/sd15)   pcm_sd15_smallcfg_2step_converted.safetensors  #example
 * ProPainter [address](https://github.com/sczhou/ProPainter/releases/tag/v0.1.0) # below example
 * unet and brushnet [address](https://huggingface.co/lixiaowen/diffuEraser/tree/main)  # below example
 
 ```
---  ComfyUI/models/checkpoints
-    |-- any sd1.5 safetensors #任意sd1.5模型
---  ComfyUI/models/DiffuEraser
+--  ComfyUI/models/vae
+    |-- sd-vae-ft-mse.safetensors #vae
+--  ComfyUI/models/clip
+    |-- clip_l.safetensors # comfyUI normal
+--  ComfyUI/models/DiffuEraservae
      |--brushnet
         |-- config.json
         |-- diffusion_pytorch_model.safetensors
