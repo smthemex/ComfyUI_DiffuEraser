@@ -1,19 +1,5 @@
-torch
+# core only needs what ComfyUI already ships, plus these:
 torchvision
-torchaudio
-diffusers
-accelerate
 opencv-python
-imageio
-#matplotlib
-transformers
 einops
-#datasets
-#numpy==1.26.4
-#pillow==10.4.0
-#tqdm==4.66.4
-#urllib3==2.2.2
-#zipp==3.19.2
-peft
-#scipy==1.13.1
-#av==14.0.1
+transformers  # only for the optional RMBG/BiRefNet auto-mask node (DiffuEraser_PreData)
