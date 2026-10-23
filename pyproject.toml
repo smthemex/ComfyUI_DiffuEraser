@@ -1,9 +1,9 @@
 [project]
 name = "comfyui_diffueraser"
-description = "DiffuEraser is a diffusion model for video Inpainting, you can use it in ComfyUI"
-version = "1.0.0"
+description = "DiffuEraser video inpainting for ComfyUI, running fully on the ComfyUI-native stack (no diffusers/transformers in the inference path)"
+version = "2.0.0"
 license = { file = "LICENSE" }
-dependencies = ["torch", "torchvision", "torchaudio", "diffusers", "accelerate", "opencv-python", "imageio", "#matplotlib", "transformers", "einops", "#datasets", "#numpy==1.26.4", "#pillow==10.4.0", "#tqdm==4.66.4", "#urllib3==2.2.2", "#zipp==3.19.2", "peft", "#scipy==1.13.1", "#av==14.0.1"]
+dependencies = ["torchvision", "opencv-python", "einops", "transformers"]
 
 [project.urls]
 Repository = "https://github.com/smthemex/ComfyUI_DiffuEraser"

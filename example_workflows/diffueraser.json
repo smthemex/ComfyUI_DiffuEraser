@@ -1,0 +1,966 @@
+{
+  "id": "6d4c633d-33e7-4ae8-9f6c-8ed09a63ff1c",
+  "revision": 0,
+  "last_node_id": 20,
+  "last_link_id": 29,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "DiffuEraser_Sampler",
+      "pos": [
+        1001.6930223506723,
+        413.37927462462335
+      ],
+      "size": [
+        270,
+        262
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "DiffuEraser_Loader",
+          "link": 2
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 25
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 17
+        },
+        {
+          "name": "negative",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DiffuEraser_Sampler"
+      },
+      "widgets_values": [
+        2,
+        1520177227,
+        "randomize",
+        22,
+        0,
+        false,
+        false
+      ],
+      "widgets_values_named": {
+        "steps": 2,
+        "seed": 1520177227,
+        "control_after_generate": "randomize",
+        "nframes": 22,
+        "guidance_scale": 0,
+        "save_result_video": false,
+        "blended": false
+      }
+    },
+    {
+      "id": 2,
+      "type": "DiffuEraser_Loader",
+      "pos": [
+        103.69532624762051,
+        225.62162223720065
+      ],
+      "size": [
+        358.54070115353124,
+        145.08861001134346
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "DiffuEraser_Loader",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DiffuEraser_Loader"
+      },
+      "widgets_values": [
+        "sd-vae-ft-mse.safetensors",
+        "pcm_sd15_smallcfg_2step_converted.safetensors",
+        "fp16"
+      ],
+      "widgets_values_named": {
+        "vae": "sd-vae-ft-mse.safetensors",
+        "lora": "pcm_sd15_smallcfg_2step_converted.safetensors",
+        "dtype": "fp16"
+      }
+    },
+    {
+      "id": 3,
+      "type": "DiffuEraser_PreData",
+      "pos": [
+        490.97118824040945,
+        828.7996259663488
+      ],
+      "size": [
+        282.4921875,
+        98
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 10
+        },
+        {
+          "name": "video_mask_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 14
+        },
+        {
+          "name": "video_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "links": [
+            16
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DiffuEraser_PreData"
+      },
+      "widgets_values": [
+        "briaai/RMBG-2.0"
+      ],
+      "widgets_values_named": {
+        "seg_repo": "briaai/RMBG-2.0"
+      }
+    },
+    {
+      "id": 4,
+      "type": "CLIPLoader",
+      "pos": [
+        603.2291960557711,
+        90.57653434237533
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            24
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "clip_l.safetensors",
+        "stable_diffusion",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "clip_l.safetensors",
+        "type": "stable_diffusion",
+        "device": "default"
+      }
+    },
+    {
+      "id": 6,
+      "type": "ConditioningZeroOut",
+      "pos": [
+        1379.9623102081264,
+        204.85574906374484
+      ],
+      "size": [
+        225,
+        33.99999171556493
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ConditioningZeroOut"
+      }
+    },
+    {
+      "id": 7,
+      "type": "SaveVideo",
+      "pos": [
+        1660.3015580694791,
+        341.19805990267434
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "video/ComfyUI",
+        "auto",
+        "auto",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "video/ComfyUI",
+        "format": "auto",
+        "format.codec": "auto",
+        "codec": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "type": "CreateVideo",
+      "pos": [
+        1310.1440849777387,
+        564.9177014645963
+      ],
+      "size": [
+        270,
+        150
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 7
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        30,
+        "auto",
+        "sRGB",
+        "none"
+      ],
+      "widgets_values_named": {
+        "fps": 30,
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "codec": "none"
+      }
+    },
+    {
+      "id": 9,
+      "type": "LoadVideo",
+      "pos": [
+        -231.5134864370221,
+        570.9405970933412
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "video.mp4",
+        "image"
+      ],
+      "widgets_values_named": {
+        "file": "video.mp4",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 10,
+      "type": "GetVideoComponents",
+      "pos": [
+        167.490659776656,
+        700.3127518688804
+      ],
+      "size": [
+        140,
+        106
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            10
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": [
+            18,
+            19,
+            29
+          ]
+        },
+        {
+          "name": "bit_depth",
+          "type": "COMBO",
+          "links": null
+        },
+        {
+          "name": "color_space",
+          "type": "COMBO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GetVideoComponents"
+      }
+    },
+    {
+      "id": 14,
+      "type": "VHS_LoadVideo",
+      "pos": [
+        86.09705525186138,
+        891.4469862461647
+      ],
+      "size": [
+        307.9794267398026,
+        310
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            14
+          ]
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "mask.mp4",
+        "force_rate": 0,
+        "custom_width": 0,
+        "custom_height": 0,
+        "frame_load_cap": 0,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "format": "AnimateDiff",
+        "choose video to upload": "image",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "mask.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_rate": 0,
+            "custom_width": 0,
+            "custom_height": 0,
+            "frame_load_cap": 0,
+            "skip_first_frames": 0,
+            "select_every_nth": 1
+          }
+        }
+      },
+      "widgets_values_named": {
+        "video": "mask.mp4",
+        "force_rate": 0,
+        "custom_width": 0,
+        "custom_height": 0,
+        "frame_load_cap": 0,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "format": "AnimateDiff",
+        "choose video to upload": "image",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "mask.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_rate": 0,
+            "custom_width": 0,
+            "custom_height": 0,
+            "frame_load_cap": 0,
+            "skip_first_frames": 0,
+            "select_every_nth": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "Propainter_Loader",
+      "pos": [
+        142.666767411752,
+        422.1814179896596
+      ],
+      "size": [
+        293.78243789354445,
+        176.79500183894095
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "Propainter_Loader",
+          "links": [
+            15
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Propainter_Loader"
+      },
+      "widgets_values": [
+        "propainter\\ProPainter.pth",
+        "propainter\\recurrent_flow_completion.pth",
+        "propainter\\raft-things.pth",
+        "cpu"
+      ],
+      "widgets_values_named": {
+        "propainter": "propainter\\ProPainter.pth",
+        "flow": "propainter\\recurrent_flow_completion.pth",
+        "fix_raft": "propainter\\raft-things.pth",
+        "device": "cpu"
+      }
+    },
+    {
+      "id": 16,
+      "type": "Propainter_Sampler",
+      "pos": [
+        620.0656401624727,
+        418.16623618875974
+      ],
+      "size": [
+        270,
+        194
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "Propainter_Loader",
+          "link": 15
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 16
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "links": [
+            17
+          ]
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            27
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Propainter_Sampler"
+      },
+      "widgets_values": [
+        10,
+        2,
+        10,
+        10,
+        50
+      ],
+      "widgets_values_named": {
+        "video_length": 10,
+        "mask_dilation_iter": 2,
+        "ref_stride": 10,
+        "neighbor_length": 10,
+        "subvideo_length": 50
+      }
+    },
+    {
+      "id": 18,
+      "type": "CLIPTextEncode",
+      "pos": [
+        966.5454247530056,
+        110.93108846513698
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 24
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            25,
+            26
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "text": ""
+      }
+    },
+    {
+      "id": 19,
+      "type": "CreateVideo",
+      "pos": [
+        974.9113235518075,
+        837.0427522523526
+      ],
+      "size": [
+        270,
+        150
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 27
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": 29
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            28
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        30,
+        "auto",
+        "sRGB",
+        "none"
+      ],
+      "widgets_values_named": {
+        "fps": 30,
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "codec": "none"
+      }
+    },
+    {
+      "id": 20,
+      "type": "SaveVideo",
+      "pos": [
+        1322.6715178210081,
+        864.5038528413164
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "video/ComfyUI",
+        "auto",
+        "auto",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "video/ComfyUI",
+        "format": "auto",
+        "format.codec": "auto",
+        "codec": "auto"
+      }
+    }
+  ],
+  "links": [
+    [
+      2,
+      2,
+      0,
+      1,
+      0,
+      "DiffuEraser_Loader"
+    ],
+    [
+      6,
+      6,
+      0,
+      1,
+      3,
+      "CONDITIONING"
+    ],
+    [
+      7,
+      1,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      9,
+      9,
+      0,
+      10,
+      0,
+      "VIDEO"
+    ],
+    [
+      10,
+      10,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      14,
+      14,
+      0,
+      3,
+      1,
+      "IMAGE"
+    ],
+    [
+      15,
+      15,
+      0,
+      16,
+      0,
+      "Propainter_Loader"
+    ],
+    [
+      16,
+      3,
+      0,
+      16,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      17,
+      16,
+      0,
+      1,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      18,
+      10,
+      2,
+      16,
+      2,
+      "FLOAT"
+    ],
+    [
+      19,
+      10,
+      2,
+      8,
+      2,
+      "FLOAT"
+    ],
+    [
+      24,
+      4,
+      0,
+      18,
+      0,
+      "CLIP"
+    ],
+    [
+      25,
+      18,
+      0,
+      1,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      26,
+      18,
+      0,
+      6,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      27,
+      16,
+      1,
+      19,
+      0,
+      "IMAGE"
+    ],
+    [
+      29,
+      10,
+      2,
+      19,
+      2,
+      "FLOAT"
+    ],
+    [
+      8,
+      8,
+      0,
+      7,
+      0,
+      "VIDEO"
+    ],
+    [
+      28,
+      19,
+      0,
+      20,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "Group",
+      "bounding": [
+        -224.53452126266967,
+        47.919369515114994,
+        2237.8369555698055,
+        1251.0015651332076
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6421852943088654,
+      "offset": [
+        666.7744830258043,
+        118.69920762803784
+      ]
+    },
+    "frontendVersion": "1.57.1",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
